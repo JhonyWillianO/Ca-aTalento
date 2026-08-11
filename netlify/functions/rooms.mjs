@@ -48,10 +48,13 @@ function mergeEvents(existing = [], incoming = []) {
 function mergeRoom(existing, incoming) {
   if (!existing) return incoming;
 
+  const existingRound = existing.roundId || "legacy";
+  const incomingRound = incoming.roundId || existingRound;
+  const newRound = incomingRound !== existingRound;
   const status = incoming.status === "finished" || existing.status === "finished"
     ? incoming.status
     : existing.status;
-  const restarting = existing.status === "finished" && incoming.status === "live";
+  const restarting = newRound || (existing.status === "finished" && incoming.status === "live");
   const currentIndex = restarting
     ? Number(incoming.currentIndex || 0)
     : status === "live"
@@ -62,12 +65,13 @@ function mergeRoom(existing, incoming) {
     ...existing,
     ...incoming,
     status,
+    roundId: incomingRound,
     currentIndex,
     participants: { ...(existing.participants || {}), ...(incoming.participants || {}) },
-    scores: mergeNested(existing.scores, incoming.scores),
-    audienceVotes: mergeNested(existing.audienceVotes, incoming.audienceVotes),
-    nextVotes: mergeNested(existing.nextVotes, incoming.nextVotes),
-    events: mergeEvents(existing.events, incoming.events)
+    scores: newRound ? (incoming.scores || {}) : mergeNested(existing.scores, incoming.scores),
+    audienceVotes: newRound ? (incoming.audienceVotes || {}) : mergeNested(existing.audienceVotes, incoming.audienceVotes),
+    nextVotes: newRound ? (incoming.nextVotes || {}) : mergeNested(existing.nextVotes, incoming.nextVotes),
+    events: newRound ? (incoming.events || []) : mergeEvents(existing.events, incoming.events)
   };
 }
 

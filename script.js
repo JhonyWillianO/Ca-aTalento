@@ -151,6 +151,7 @@ function createRoom(code) {
   return {
     code,
     status: "live",
+    roundId: crypto.randomUUID(),
     currentIndex: 0,
     participants: {},
     queue: [],
@@ -194,6 +195,7 @@ function addChatMessage(room, text) {
     type: "chat",
     text,
     author: app.profile.name,
+    roleLabel: roleLabel(app.profile.role),
     role: app.profile.role,
     at: Date.now()
   });
@@ -216,7 +218,8 @@ function upsertParticipant(room) {
 function roleLabel(role) {
   if (role === "teacher") return "professor";
   if (role === "viewer") return "convidado";
-  return "aluno";
+  if (role === "student") return "aluno";
+  return "visitante";
 }
 
 async function joinRoom(code, shouldCreate = false) {
@@ -264,6 +267,7 @@ function students(room = app.room) {
 
 function resetRoomForNewRound(room) {
   room.status = "live";
+  room.roundId = crypto.randomUUID();
   room.currentIndex = 0;
   room.scores = {};
   room.nextVotes = {};
@@ -540,7 +544,8 @@ function renderScores() {
 
       li.className = "chat-message";
       author.className = "chat-author";
-      author.textContent = `${normalizedEvent.author || "Visitante"}:`;
+      const label = (normalizedEvent.roleLabel || roleLabel(normalizedEvent.role || "") || "visitante").toUpperCase();
+      author.textContent = `[${label}] ${normalizedEvent.author || "Visitante"}:`;
       message.textContent = normalizedEvent.text;
       li.append(author, message);
     } else {
