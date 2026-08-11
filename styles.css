@@ -665,64 +665,15 @@ h2 {
   box-shadow: 0 5px 0 rgba(3, 28, 79, 0.25);
 }
 
-.owner-box {
-  display: none;
-  position: relative;
-  padding: 28px 18px 14px;
-  border: 3px solid #9db1bf;
-  border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 5px 0 rgba(3, 28, 79, 0.25);
-}
-
-.owner-box.is-active {
-  display: grid;
-  gap: 12px;
-}
-
-.owner-box p {
-  color: #777;
-  font-weight: 900;
-  text-align: center;
-}
-
-.manage-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.manage-list li {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-  align-items: center;
-  padding: 8px 10px;
-  border: 2px solid #d8e0e6;
-  border-radius: 8px;
-}
-
-.manage-list strong {
-  display: block;
-  color: #777;
-}
-
-.manage-list span {
-  color: var(--blue-deep);
-  font-size: 13px;
-  font-weight: 1000;
-  text-transform: uppercase;
-}
-
 .remove-button {
-  min-height: 36px;
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
   border: 3px solid #7d1d2a;
-  border-radius: 12px;
+  border-radius: 8px;
   color: #ffffff;
   background: var(--danger);
+  line-height: 1;
   font-weight: 1000;
 }
 
@@ -824,6 +775,42 @@ h2 {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.guest-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.guest-list li {
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  color: #777;
+  font-weight: 900;
+}
+
+.guest-list img {
+  width: 42px;
+  height: 42px;
+  border: 3px solid var(--blue);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.participant-line {
+  position: relative;
+}
+
+.participant-line.has-remove {
+  display: grid;
+  grid-template-columns: 68px 1fr auto;
+  align-items: center;
+  gap: 10px;
 }
 
 .teacher-list li,
@@ -1110,7 +1097,6 @@ h2 {
   }
 
   .invite-box,
-  .owner-box,
   .audience-vote,
   .chat-form {
     grid-template-columns: 1fr;

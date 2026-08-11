@@ -467,7 +467,7 @@ function renderEmpty(target) {
   target.append($("#emptyItem").content.cloneNode(true));
 }
 
-function personLine(person, metaText) {
+function personLine(person, metaText, options = {}) {
   const li = document.createElement("li");
   const image = document.createElement("img");
   const body = document.createElement("div");
@@ -482,7 +482,23 @@ function personLine(person, metaText) {
 
   body.append(name, meta);
   li.append(image, body);
+
+  if (options.removable) {
+    const button = document.createElement("button");
+    li.classList.add("participant-line", "has-remove");
+    button.className = "remove-button";
+    button.type = "button";
+    button.title = `Remover ${person.name}`;
+    button.textContent = "X";
+    button.dataset.removeParticipant = person.id;
+    li.append(button);
+  }
+
   return li;
+}
+
+function canRemoveParticipant(person) {
+  return isRoomOwner() && person.id !== app.profile.id;
 }
 
 async function renderRooms() {
@@ -551,7 +567,9 @@ function renderQueue() {
     const state = index === app.room.currentIndex ? "apresentando" : index < app.room.currentIndex ? "concluido" : "aguardando";
     const points = average(student.id).toFixed(1);
     const publicScore = audienceApproval(student.id);
-    list.append(personLine(student, `${points}/40 pts - ${state} - ${publicScore.label}`));
+    list.append(personLine(student, `${points}/40 pts - ${state} - ${publicScore.label}`, {
+      removable: canRemoveParticipant(student)
+    }));
   });
 }
 
@@ -568,45 +586,23 @@ function renderTeachers() {
   people.forEach((teacher) => {
     const performer = currentStudent();
     const gaveScore = performer && app.room.scores[performer.id]?.[teacher.id] !== undefined;
-    list.append(personLine(teacher, gaveScore ? "nota enviada" : "aguardando nota"));
+    list.append(personLine(teacher, gaveScore ? "nota enviada" : "aguardando nota", {
+      removable: canRemoveParticipant(teacher)
+    }));
   });
 }
 
-function renderOwnerControls() {
-  const owner = isRoomOwner();
-  const box = $("#ownerBox");
-  const list = $("#manageList");
-  box.classList.toggle("is-active", owner && app.room?.status !== "finished");
+function renderGuests() {
+  const list = $("#guestList");
   list.innerHTML = "";
+  const guests = Object.values(app.room?.participants || {})
+    .filter((person) => person.role === "viewer")
+    .sort((a, b) => a.name.localeCompare(b.name));
 
-  if (!owner) return;
-
-  const participants = Object.values(app.room.participants || {})
-    .filter((person) => person.id !== app.profile.id)
-    .sort((a, b) => roleLabel(a.role).localeCompare(roleLabel(b.role)) || a.name.localeCompare(b.name));
-
-  if (!participants.length) {
-    renderEmpty(list);
-    return;
-  }
-
-  participants.forEach((person) => {
-    const item = document.createElement("li");
-    const body = document.createElement("div");
-    const name = document.createElement("strong");
-    const role = document.createElement("span");
-    const button = document.createElement("button");
-
-    name.textContent = person.name;
-    role.textContent = roleLabel(person.role);
-    button.className = "remove-button";
-    button.type = "button";
-    button.textContent = "REMOVER";
-    button.dataset.removeParticipant = person.id;
-
-    body.append(name, role);
-    item.append(body, button);
-    list.append(item);
+  guests.forEach((guest) => {
+    list.append(personLine(guest, "convidado", {
+      removable: canRemoveParticipant(guest)
+    }));
   });
 }
 
@@ -758,7 +754,7 @@ function renderStage() {
 
   renderQueue();
   renderTeachers();
-  renderOwnerControls();
+  renderGuests();
   renderScores();
 }
 
@@ -901,7 +897,7 @@ $("#chatForm").addEventListener("submit", async (event) => {
   render();
 });
 
-$("#manageList").addEventListener("click", async (event) => {
+document.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-remove-participant]");
   if (!button) return;
 
