@@ -11,7 +11,9 @@ Aplicativo web inspirado no visual do Gartic, feito para uma competicao de apres
 - cada professor so pode dar uma nota por aluno em cada rodada;
 - a avaliacao usa 4 criterios: afinacao e tecnica, interpretacao, presenca de palco, criatividade e originalidade;
 - cada criterio vale de 0 a 10, totalizando ate 40 pontos por professor;
-- o app avanca para o proximo aluno;
+- o app so avanca para o proximo aluno quando todos os professores votam e todos confirmam o botao `PROXIMO`;
+- fotos de perfil sao redimensionadas antes de salvar para evitar travamentos e layout quebrado;
+- a area de chat permite mensagens de alunos, professores e convidados durante a apresentacao;
 - no fim aparece o placar final.
 - professor pode recomecar mantendo todos na sala ou criar uma nova sala.
 - na sala, o quadro central mostra a foto do aluno que esta apresentando;

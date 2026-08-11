@@ -155,6 +155,7 @@ function createRoom(code) {
     participants: {},
     queue: [],
     scores: {},
+    nextVotes: {},
     audienceVotes: {},
     events: [],
     createdAt: Date.now()
@@ -182,8 +183,21 @@ function updateHeader() {
 
 function addEvent(room, text) {
   room.events ||= [];
-  room.events.unshift({ id: crypto.randomUUID(), text, at: Date.now() });
-  room.events = room.events.slice(0, 20);
+  room.events.unshift({ id: crypto.randomUUID(), type: "system", text, at: Date.now() });
+  room.events = room.events.slice(0, 60);
+}
+
+function addChatMessage(room, text) {
+  room.events ||= [];
+  room.events.unshift({
+    id: crypto.randomUUID(),
+    type: "chat",
+    text,
+    author: app.profile.name,
+    role: app.profile.role,
+    at: Date.now()
+  });
+  room.events = room.events.slice(0, 60);
 }
 
 function upsertParticipant(room) {
@@ -252,6 +266,7 @@ function resetRoomForNewRound(room) {
   room.status = "live";
   room.currentIndex = 0;
   room.scores = {};
+  room.nextVotes = {};
   room.audienceVotes = {};
   room.events = [];
   room.queue = Object.values(room.participants)
@@ -348,6 +363,20 @@ function teacherVoteStatus(studentId, room = app.room) {
 
 function teacherScoredStudent(studentId, teacherId = app.profile.id, room = app.room) {
   return room?.scores?.[studentId]?.[teacherId] !== undefined;
+}
+
+function teacherNextStatus(studentId, room = app.room) {
+  const teacherList = teachers(room);
+  const confirmedCount = teacherList.filter((teacher) => room?.nextVotes?.[studentId]?.[teacher.id]).length;
+  return {
+    confirmedCount,
+    total: teacherList.length,
+    complete: teacherList.length > 0 && confirmedCount === teacherList.length
+  };
+}
+
+function teacherConfirmedNext(studentId, teacherId = app.profile.id, room = app.room) {
+  return Boolean(room?.nextVotes?.[studentId]?.[teacherId]);
 }
 
 function isLastStudent(room = app.room) {
@@ -503,7 +532,22 @@ function renderScores() {
 
   events.forEach((event) => {
     const li = document.createElement("li");
-    li.textContent = event.text;
+    const normalizedEvent = typeof event === "string" ? { type: "system", text: event } : event;
+
+    if (normalizedEvent.type === "chat") {
+      const author = document.createElement("span");
+      const message = document.createElement("span");
+
+      li.className = "chat-message";
+      author.className = "chat-author";
+      author.textContent = `${normalizedEvent.author || "Visitante"}:`;
+      message.textContent = normalizedEvent.text;
+      li.append(author, message);
+    } else {
+      li.className = "system-message";
+      li.textContent = normalizedEvent.text;
+    }
+
     list.append(li);
   });
 }
@@ -599,12 +643,22 @@ function renderStage() {
 
   const alreadyScored = performer ? teacherScoredStudent(performer.id) : false;
   const voteStatus = performer ? teacherVoteStatus(performer.id) : { votedCount: 0, total: 0, complete: false };
+  const nextStatus = performer ? teacherNextStatus(performer.id) : { confirmedCount: 0, total: 0, complete: false };
+  const alreadyConfirmedNext = performer ? teacherConfirmedNext(performer.id) : false;
   const lastStudentOnStage = Boolean(performer) && isLastStudent();
   $("#sendScore").disabled = !performer || performer.id === app.profile.id || alreadyScored;
   $("#sendScore").textContent = alreadyScored ? "NOTA ENVIADA" : "DAR NOTA";
-  $("#nextStudent").disabled = !performer || !voteStatus.complete;
-  $("#nextStudent").title = voteStatus.complete ? "" : `Aguardando professores: ${voteStatus.votedCount}/${voteStatus.total}`;
-  $("#nextStudent").textContent = lastStudentOnStage ? "FINALIZAR" : "PROXIMO";
+  $("#nextStudent").disabled = !performer || !voteStatus.complete || alreadyConfirmedNext;
+  $("#nextStudent").title = !voteStatus.complete
+    ? `Aguardando notas dos professores: ${voteStatus.votedCount}/${voteStatus.total}`
+    : alreadyConfirmedNext
+      ? `Aguardando confirmacao dos professores: ${nextStatus.confirmedCount}/${nextStatus.total}`
+      : "";
+  $("#nextStudent").textContent = alreadyConfirmedNext
+    ? `AGUARDANDO ${nextStatus.confirmedCount}/${nextStatus.total}`
+    : lastStudentOnStage
+      ? "FINALIZAR"
+      : "PROXIMO";
   $("#nextStudent").classList.toggle("blue-button", !lastStudentOnStage);
   $("#nextStudent").classList.toggle("danger-button", lastStudentOnStage);
 
@@ -659,21 +713,47 @@ function render() {
   }
 }
 
+function resizeProfilePhoto(file, maxSize = 420) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = reject;
+      image.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 $$("[data-go]").forEach((button) => {
   button.addEventListener("click", () => showScreen(button.dataset.go));
 });
 
-$("#photoInput").addEventListener("change", (event) => {
+$("#photoInput").addEventListener("change", async (event) => {
   const file = event.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    app.profile.photo = reader.result;
-    $("#profilePhoto").src = reader.result;
+  try {
+    const photo = await resizeProfilePhoto(file);
+    app.profile.photo = photo;
+    $("#profilePhoto").src = photo;
     updateHeader();
-  };
-  reader.readAsDataURL(file);
+  } catch {
+    alert("Nao foi possivel carregar esta foto. Tente outra imagem.");
+  }
 });
 
 $$("[data-role]").forEach((button) => {
@@ -708,6 +788,24 @@ $("#createRoom").addEventListener("click", async () => {
 
 $("#joinRoom").addEventListener("click", async () => {
   await joinRoom($("#roomInput").value || app.selectedRoom, false);
+});
+
+$("#chatForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!app.room?.code) return;
+
+  const input = $("#chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  profileReady();
+  const room = await loadRoom(app.room.code);
+  if (!room) return;
+
+  addChatMessage(room, text);
+  input.value = "";
+  await saveRoom(room);
+  render();
 });
 
 $$("[data-public-vote]").forEach((button) => {
@@ -768,9 +866,34 @@ $("#sendScore").addEventListener("click", async () => {
 });
 
 $("#nextStudent").addEventListener("click", async () => {
+  const performer = currentStudent();
+  if (!performer) return;
+
   const room = await loadRoom(app.room.code);
   if (!room) return;
-  await advanceRoom(room);
+  const livePerformer = currentStudent(room);
+  if (!livePerformer) return;
+
+  const voteStatus = teacherVoteStatus(livePerformer.id, room);
+  if (!voteStatus.complete) {
+    alert(`Aguardando notas dos professores: ${voteStatus.votedCount}/${voteStatus.total}`);
+    app.room = room;
+    render();
+    return;
+  }
+
+  room.nextVotes ||= {};
+  room.nextVotes[livePerformer.id] ||= {};
+  room.nextVotes[livePerformer.id][app.profile.id] = true;
+
+  const nextStatus = teacherNextStatus(livePerformer.id, room);
+  if (nextStatus.complete) {
+    await advanceRoom(room);
+  } else {
+    addEvent(room, `${app.profile.name} confirmou proximo aluno (${nextStatus.confirmedCount}/${nextStatus.total}).`);
+    await saveRoom(room);
+  }
+
   render();
   if (app.room.status === "finished") showScreen("scoreboard");
 });

@@ -866,12 +866,54 @@ h2 {
 .score-list {
   display: grid;
   gap: 8px;
-  max-height: 190px;
+  max-height: 150px;
   overflow: auto;
 }
 
 .score-list li {
   align-items: flex-start;
+  padding: 6px 0;
+  border-bottom: 1px solid #e3e9ee;
+}
+
+.score-list .chat-message {
+  display: grid;
+  gap: 2px;
+}
+
+.score-list .chat-author {
+  color: var(--blue-deep);
+  font-weight: 1000;
+}
+
+.score-list .system-message {
+  color: #7b7f88;
+  font-style: italic;
+}
+
+.chat-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chat-form input {
+  min-width: 0;
+  height: 46px;
+  border: 3px solid #8e97a2;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #666;
+  font-weight: 900;
+}
+
+.chat-form .blue-button {
+  min-width: 96px;
+  min-height: 46px;
+  border-width: 4px;
+  border-radius: 16px;
+  font-size: 15px;
 }
 
 .empty {
@@ -1007,7 +1049,8 @@ h2 {
   }
 
   .invite-box,
-  .audience-vote {
+  .audience-vote,
+  .chat-form {
     grid-template-columns: 1fr;
   }
 

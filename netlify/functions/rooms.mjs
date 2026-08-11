@@ -17,6 +17,60 @@ function roomKey(code) {
   return `room-${cleanCode(code)}`;
 }
 
+function mergeNested(existing = {}, incoming = {}) {
+  const merged = { ...existing };
+
+  for (const [outerKey, innerValue] of Object.entries(incoming || {})) {
+    if (innerValue && typeof innerValue === "object" && !Array.isArray(innerValue)) {
+      merged[outerKey] = { ...(merged[outerKey] || {}), ...innerValue };
+    } else {
+      merged[outerKey] = innerValue;
+    }
+  }
+
+  return merged;
+}
+
+function mergeEvents(existing = [], incoming = []) {
+  const byId = new Map();
+
+  [...existing, ...incoming].forEach((event) => {
+    if (!event) return;
+    const id = event.id || `${event.at || Date.now()}-${event.text || ""}`;
+    byId.set(id, { ...event, id });
+  });
+
+  return [...byId.values()]
+    .sort((a, b) => Number(b.at || 0) - Number(a.at || 0))
+    .slice(0, 80);
+}
+
+function mergeRoom(existing, incoming) {
+  if (!existing) return incoming;
+
+  const status = incoming.status === "finished" || existing.status === "finished"
+    ? incoming.status
+    : existing.status;
+  const restarting = existing.status === "finished" && incoming.status === "live";
+  const currentIndex = restarting
+    ? Number(incoming.currentIndex || 0)
+    : status === "live"
+      ? Math.max(Number(existing.currentIndex || 0), Number(incoming.currentIndex || 0))
+      : Number(incoming.currentIndex || existing.currentIndex || 0);
+
+  return {
+    ...existing,
+    ...incoming,
+    status,
+    currentIndex,
+    participants: { ...(existing.participants || {}), ...(incoming.participants || {}) },
+    scores: mergeNested(existing.scores, incoming.scores),
+    audienceVotes: mergeNested(existing.audienceVotes, incoming.audienceVotes),
+    nextVotes: mergeNested(existing.nextVotes, incoming.nextVotes),
+    events: mergeEvents(existing.events, incoming.events)
+  };
+}
+
 export default async (req, context) => {
   const store = getStore({ name: "caca-talentos-rooms", consistency: "strong" });
   const code = cleanCode(context.params?.code || "");
@@ -47,9 +101,11 @@ export default async (req, context) => {
       return json({ error: "Dados da sala invalidos." }, 400);
     }
 
-    room.updatedAt = Date.now();
-    await store.setJSON(roomKey(code), room);
-    return json({ room });
+    const existing = await store.get(roomKey(code), { type: "json" });
+    const mergedRoom = mergeRoom(existing, room);
+    mergedRoom.updatedAt = Date.now();
+    await store.setJSON(roomKey(code), mergedRoom);
+    return json({ room: mergedRoom });
   }
 
   return json({ error: "Metodo nao permitido." }, 405);
