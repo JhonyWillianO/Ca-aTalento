@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Caca-Talentos Prof. Jony</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="game-header">
+      <div class="app-logo">
+        <span>Caca</span><b>Talentos</b>
+      </div>
+      <div class="header-profile" id="headerProfile">
+        <strong id="headerName">Visitante</strong>
+        <img id="headerAvatar" alt="" />
+      </div>
+    </header>
+
+    <main class="app-shell" aria-live="polite">
+      <section class="screen is-active" data-screen="welcome">
+        <section class="join-card">
+          <div class="event-stamp">
+            <span>Show</span>
+            <strong>Prof. Jony</strong>
+          </div>
+
+          <div class="ribbon">JOGAR</div>
+
+          <div class="welcome-grid">
+            <div class="profile-zone">
+              <h1>Escolha um nick e avatar</h1>
+              <label class="avatar-picker" for="photoInput">
+                <img id="profilePhoto" alt="" />
+                <span class="edit-badge">+</span>
+              </label>
+              <input id="photoInput" type="file" accept="image/*" hidden />
+
+              <label class="field">
+                <span>Nick</span>
+                <input id="nameInput" type="text" maxlength="28" placeholder="Seu nome" />
+              </label>
+
+              <div class="role-select" aria-label="Escolha como entrar">
+                <button class="role-pill is-selected" data-role="student">Aluno</button>
+                <button class="role-pill" data-role="teacher">Professor</button>
+                <button class="role-pill" data-role="viewer">Convidado</button>
+              </div>
+
+              <div class="main-actions">
+                <button class="yellow-button" id="openRooms">CONTINUAR</button>
+                <button class="test-button" id="testRoom">SALA TESTE</button>
+              </div>
+            </div>
+
+            <aside class="project-info">
+              <h2>Competicao saudavel</h2>
+              <p>
+                O Caca-Talentos e um projeto para criancas apresentarem suas musicas,
+                vencerem a timidez e participarem de uma disputa divertida com respeito,
+                torcida e incentivo dos professores.
+              </p>
+              <div class="feature-icons">
+                <div><span>1</span><b>Apresentar</b></div>
+                <div><span>2</span><b>Avaliar</b></div>
+                <div><span>3</span><b>Celebrar</b></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </section>
+
+      <section class="screen" data-screen="room">
+        <section class="rooms-card">
+          <div class="rooms-top">
+            <button class="back-button" data-go="welcome" title="Voltar">&lsaquo;</button>
+            <label class="search-box">
+              <span>Q</span>
+              <input id="roomInput" type="text" maxlength="6" placeholder="codigo da sala" />
+            </label>
+            <div class="ribbon small" id="roomScreenTitle">SALAS</div>
+            <div class="filters">
+              <span>CODIGO</span>
+              <b id="selectedRoomLabel">---</b>
+            </div>
+          </div>
+
+          <p class="room-help" id="roomHelp">Digite o codigo enviado pelo professor.</p>
+          <div class="scanner-box" id="scannerBox">
+            <video id="qrVideo" playsinline muted></video>
+            <div class="scanner-actions">
+              <button class="blue-button" id="startScanner">SCANEAR QR CODE</button>
+              <button class="test-button" id="stopScanner">PARAR CAMERA</button>
+            </div>
+            <p id="scannerStatus">Aponte a camera para o QR Code da sala.</p>
+          </div>
+
+          <div class="room-grid" id="roomGrid"></div>
+
+          <div class="room-actions">
+              <button class="blue-button" id="createRoom">NOVA SALA</button>
+              <button class="test-button" id="testRoomFromList">SALA TESTE</button>
+              <button class="yellow-button" id="joinRoom">ENTRAR</button>
+            </div>
+        </section>
+      </section>
+
+      <section class="screen stage-screen" data-screen="stage">
+        <div class="stage-layout">
+          <aside class="ranking-panel">
+            <div class="panel-title">
+              <span>Sala</span>
+              <strong id="currentCode">---</strong>
+              <button class="mini-button" id="copyCode" title="Copiar codigo">copiar</button>
+            </div>
+            <ul class="player-list" id="queueList"></ul>
+          </aside>
+
+          <section class="show-area">
+            <div class="stage-toolbar">
+              <div class="ribbon tiny" id="stageTitle">PALCO</div>
+              <button class="icon-round" id="finishRoom" title="Finalizar show">!</button>
+            </div>
+
+            <section class="invite-box" id="inviteBox">
+              <div>
+                <span>Convite da sala</span>
+                <strong id="inviteCode">---</strong>
+                <p>Alunos, convidados e outros professores entram com este codigo.</p>
+              </div>
+              <canvas id="qrCanvas" width="132" height="132" aria-label="QR Code da sala"></canvas>
+            </section>
+
+            <div class="photo-board">
+              <div class="hint-card">APRESENTANDO</div>
+              <img id="performerPhoto" alt="" />
+              <strong id="performerName">Aguardando aluno</strong>
+            </div>
+
+            <div class="bottom-panels">
+              <section class="professor-box">
+                <div class="box-label">PROFESSORES</div>
+                <ul class="teacher-list" id="teacherList"></ul>
+                <div class="teacher-panel" id="teacherPanel">
+                  <div class="criteria-panel">
+                    <label class="score-control">
+                      <span>Afinacao e tecnica</span>
+                      <small>Notas, voz/instrumento, respiracao e ritmo.</small>
+                      <output>8.0</output>
+                      <input data-criterion="technique" type="range" min="0" max="10" step="0.5" value="8" />
+                    </label>
+                    <label class="score-control">
+                      <span>Interpretacao</span>
+                      <small>Emocao, personalidade e conexao com a musica.</small>
+                      <output>8.0</output>
+                      <input data-criterion="expression" type="range" min="0" max="10" step="0.5" value="8" />
+                    </label>
+                    <label class="score-control">
+                      <span>Presenca de palco</span>
+                      <small>Postura, desenvoltura, expressao corporal e carisma.</small>
+                      <output>8.0</output>
+                      <input data-criterion="stagePresence" type="range" min="0" max="10" step="0.5" value="8" />
+                    </label>
+                    <label class="score-control">
+                      <span>Criatividade</span>
+                      <small>Arranjo, repertorio diferente ou estilo autentico.</small>
+                      <output>8.0</output>
+                      <input data-criterion="creativity" type="range" min="0" max="10" step="0.5" value="8" />
+                    </label>
+                    <div class="score-total">
+                      <span>Total</span>
+                      <strong id="scoreValue">32.0</strong>
+                    </div>
+                  </div>
+                  <div class="score-actions">
+                    <button class="yellow-button" id="sendScore">DAR NOTA</button>
+                    <button class="blue-button" id="nextStudent">PROXIMO</button>
+                  </div>
+                </div>
+                <div class="student-panel" id="studentPanel">
+                  <p id="studentMessage">Entre na fila e aguarde sua vez.</p>
+                  <button class="yellow-button" id="joinQueue">ENTRAR NA FILA</button>
+                </div>
+                <div class="viewer-panel" id="viewerPanel">
+                  <p id="viewerMessage">Convidados acompanhando o show ao vivo.</p>
+                  <div class="audience-vote" id="audienceVote">
+                    <button data-public-vote="bad">Ruim</button>
+                    <button data-public-vote="good">Bom</button>
+                    <button data-public-vote="great">Maravilhoso</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="log-box">
+                <div class="box-label">REGISTROS</div>
+                <ul class="score-list" id="scoreList"></ul>
+              </section>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="scoreboard">
+        <section class="score-card">
+          <div class="ribbon">PLACAR FINAL</div>
+          <div class="public-summary" id="publicSummary"></div>
+          <ol class="podium" id="podium"></ol>
+          <div class="finish-actions" id="finishActions">
+            <p>Show encerrado. O que deseja fazer?</p>
+            <button class="yellow-button" id="restartCompetition">RECOMECAR</button>
+            <button class="blue-button" id="newCompetition">NOVA SALA</button>
+          </div>
+          <p class="waiting-host" id="waitingHost">Aguardando o professor iniciar outra rodada.</p>
+        </section>
+      </section>
+    </main>
+
+    <template id="emptyItem">
+      <li class="empty">Nada por aqui ainda.</li>
+    </template>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
