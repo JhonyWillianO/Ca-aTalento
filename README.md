@@ -16,7 +16,6 @@ Aplicativo web inspirado no visual do Gartic, feito para uma competicao de apres
 - professor pode recomecar mantendo todos na sala ou criar uma nova sala.
 - na sala, o quadro central mostra a foto do aluno que esta apresentando;
 - o bloco inferior mostra professores e registros do show.
-- botao `SALA TESTE` cria a sala `TESTE1` com alunos, professores, convidados e notas de exemplo.
 - convidados votam no aluno atual com `Ruim`, `Bom` ou `Maravilhoso`, gerando aprovacao do publico no placar.
 
 ## Como abrir no VS Code
@@ -33,9 +32,6 @@ Abra o `index.html` em duas abas do mesmo navegador:
 2. Na segunda aba, entre como aluno usando o mesmo codigo.
 3. Em outra aba, entre como espectador para acompanhar.
 4. O professor avalia, o app avanca e no final mostra o placar.
-
-Para testar mais rapido, clique em `SALA TESTE`. O app cria a sala `TESTE1`
-com dados prontos para validar o palco, professores, registros, notas e placar.
 
 ## Netlify
 

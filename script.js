@@ -55,23 +55,12 @@ function makeCode() {
 function defaultAvatar(role) {
   const label = role === "teacher" ? "P" : role === "viewer" ? "C" : "A";
   const primary = role === "teacher" ? "#12844f" : role === "viewer" ? "#7b5eea" : "#0b78f0";
-  const hair = role === "teacher" ? "#402615" : "#2d221e";
-  const accessory = role === "teacher"
-    ? '<rect x="34" y="47" width="52" height="16" rx="8" fill="none" stroke="#10254d" stroke-width="5"/>'
-    : "";
 
   return `data:image/svg+xml,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
       <rect width="160" height="160" rx="80" fill="${primary}"/>
-      <circle cx="80" cy="74" r="44" fill="#ffd798"/>
-      <path d="M38 63c7-33 66-46 88-10-23-8-48-4-72 12z" fill="${hair}"/>
-      ${accessory}
-      <circle cx="64" cy="79" r="6" fill="#10254d"/>
-      <circle cx="96" cy="79" r="6" fill="#10254d"/>
-      <path d="M61 99c12 12 27 12 39 0" fill="none" stroke="#10254d" stroke-width="6" stroke-linecap="round"/>
-      <path d="M28 150c7-34 97-34 104 0z" fill="#ffc928"/>
-      <circle cx="123" cy="123" r="24" fill="#ffffff"/>
-      <text x="123" y="133" text-anchor="middle" font-size="28" font-family="Arial" font-weight="700" fill="${primary}">${label}</text>
+      <circle cx="80" cy="80" r="56" fill="#ffffff" opacity="0.95"/>
+      <text x="80" y="98" text-anchor="middle" font-size="58" font-family="Arial" font-weight="700" fill="${primary}">${label}</text>
     </svg>
   `)}`;
 }
@@ -170,89 +159,6 @@ function createRoom(code) {
     events: [],
     createdAt: Date.now()
   };
-}
-
-async function createTestRoom() {
-  const now = Date.now();
-  const room = createRoom("TESTE1");
-  room.createdAt = now;
-  room.participants = {
-    demoTeacher1: {
-      id: "demoTeacher1",
-      name: "Prof. Jony",
-      photo: "",
-      role: "teacher",
-      joinedAt: now - 7000
-    },
-    demoTeacher2: {
-      id: "demoTeacher2",
-      name: "Prof. Ana",
-      photo: "",
-      role: "teacher",
-      joinedAt: now - 6000
-    },
-    demoStudent1: {
-      id: "demoStudent1",
-      name: "Livia",
-      photo: "",
-      role: "student",
-      joinedAt: now - 5000
-    },
-    demoStudent2: {
-      id: "demoStudent2",
-      name: "Rafael",
-      photo: "",
-      role: "student",
-      joinedAt: now - 4000
-    },
-    demoStudent3: {
-      id: "demoStudent3",
-      name: "Yasmin",
-      photo: "",
-      role: "student",
-      joinedAt: now - 3000
-    },
-    demoViewer1: {
-      id: "demoViewer1",
-      name: "Familia da Livia",
-      photo: "",
-      role: "viewer",
-      joinedAt: now - 2000
-    }
-  };
-  room.queue = ["demoStudent1", "demoStudent2", "demoStudent3"];
-  room.scores = {
-    demoStudent1: {
-      demoTeacher1: {
-        technique: 9,
-        expression: 8.5,
-        stagePresence: 9,
-        creativity: 8
-      },
-      demoTeacher2: {
-        technique: 8.5,
-        expression: 9,
-        stagePresence: 8.5,
-        creativity: 9
-      }
-    }
-  };
-  room.audienceVotes = {
-    demoStudent1: {
-      demoViewer1: "great"
-    },
-    demoStudent2: {
-      demoViewer1: "good"
-    }
-  };
-  room.currentIndex = 1;
-  room.events = [
-    { id: crypto.randomUUID(), text: "Livia recebeu media 8.8.", at: now - 1200 },
-    { id: crypto.randomUUID(), text: "Rafael subiu ao palco.", at: now - 900 },
-    { id: crypto.randomUUID(), text: "Familia da Livia entrou para acompanhar.", at: now - 500 }
-  ];
-  await saveRoom(room);
-  return room;
 }
 
 function profileReady() {
@@ -434,10 +340,10 @@ function updateScoreTotal() {
   });
 }
 
-function allTeachersScored(studentId, room = app.room) {
-  const teacherIds = teachers(room).map((teacher) => teacher.id);
-  if (!teacherIds.length) return false;
-  return teacherIds.every((id) => room.scores[studentId]?.[id] !== undefined);
+function teacherVoteStatus(studentId, room = app.room) {
+  const teacherList = teachers(room);
+  const votedCount = teacherList.filter((teacher) => room?.scores?.[studentId]?.[teacher.id] !== undefined).length;
+  return { votedCount, total: teacherList.length, complete: teacherList.length > 0 && votedCount === teacherList.length };
 }
 
 function teacherScoredStudent(studentId, teacherId = app.profile.id, room = app.room) {
@@ -692,10 +598,12 @@ function renderStage() {
       : "Entre na fila e aguarde sua vez.";
 
   const alreadyScored = performer ? teacherScoredStudent(performer.id) : false;
+  const voteStatus = performer ? teacherVoteStatus(performer.id) : { votedCount: 0, total: 0, complete: false };
   const lastStudentOnStage = Boolean(performer) && isLastStudent();
   $("#sendScore").disabled = !performer || performer.id === app.profile.id || alreadyScored;
   $("#sendScore").textContent = alreadyScored ? "NOTA ENVIADA" : "DAR NOTA";
-  $("#nextStudent").disabled = !performer;
+  $("#nextStudent").disabled = !performer || !voteStatus.complete;
+  $("#nextStudent").title = voteStatus.complete ? "" : `Aguardando professores: ${voteStatus.votedCount}/${voteStatus.total}`;
   $("#nextStudent").textContent = lastStudentOnStage ? "FINALIZAR" : "PROXIMO";
   $("#nextStudent").classList.toggle("blue-button", !lastStudentOnStage);
   $("#nextStudent").classList.toggle("danger-button", lastStudentOnStage);
@@ -781,28 +689,6 @@ $("#openRooms").addEventListener("click", () => {
   profileReady();
   showScreen("room");
 });
-
-async function enterTestRoom() {
-  if (!profileReady()) return;
-  app.profile.role = app.profile.role || "teacher";
-  const room = await createTestRoom();
-  upsertParticipant(room);
-
-  if (app.profile.role === "student" && !room.queue.includes(app.profile.id)) {
-    room.queue.push(app.profile.id);
-  }
-
-  app.profile.roomCode = room.code;
-  app.selectedRoom = room.code;
-  $("#roomInput").value = room.code;
-  $("#selectedRoomLabel").textContent = room.code;
-  await saveRoom(room);
-  renderStage();
-  showScreen("stage");
-}
-
-$("#testRoom").addEventListener("click", enterTestRoom);
-$("#testRoomFromList").addEventListener("click", enterTestRoom);
 
 $("#roomInput").addEventListener("input", (event) => {
   event.target.value = normalizeCode(event.target.value);
