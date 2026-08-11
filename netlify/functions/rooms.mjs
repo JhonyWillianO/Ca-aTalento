@@ -122,7 +122,14 @@ export default async (req, context) => {
 
     for (const blob of blobs) {
       const room = await store.get(blob.key, { type: "json" });
-      if (room) rooms.push(room);
+      if (!room) continue;
+
+      if (Object.keys(room.participants || {}).length === 0) {
+        await store.delete(blob.key);
+        continue;
+      }
+
+      rooms.push(room);
     }
 
     rooms.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
@@ -134,6 +141,11 @@ export default async (req, context) => {
   if (req.method === "GET") {
     const room = await store.get(roomKey(code), { type: "json" });
     return room ? json({ room }) : json({ error: "Sala nao encontrada." }, 404);
+  }
+
+  if (req.method === "DELETE") {
+    await store.delete(roomKey(code));
+    return json({ ok: true });
   }
 
   if (req.method === "PUT" || req.method === "POST") {

@@ -5,9 +5,13 @@ Aplicativo web inspirado no visual do Gartic, feito para uma competicao de apres
 - aluno, professor ou convidados entram sem login, apenas com nick e avatar;
 - professor cria uma sala com codigo;
 - apenas professores podem criar sala;
+- salas novas recebem codigo aleatorio automaticamente;
 - o professor que criou a sala vira organizador;
 - somente o organizador pode recomeçar a sala e remover alunos, professores ou convidados;
+- o organizador tambem e o unico que ve o botao `FINALIZAR SHOW`;
+- ao finalizar o show, o app pede confirmacao antes de encerrar;
 - alunos entram na sala com o codigo enviado pelo professor e ficam em fila;
+- convidados aparecem em um bloco proprio abaixo dos alunos;
 - convidados entram com codigo ou scanner de QR Code para acompanhar;
 - professor da nota para o aluno da vez;
 - cada professor so pode dar uma nota por aluno em cada rodada;
@@ -15,6 +19,7 @@ Aplicativo web inspirado no visual do Gartic, feito para uma competicao de apres
 - cada criterio vale de 0 a 10, totalizando ate 40 pontos por professor;
 - o app so avanca para o proximo aluno quando todos os professores votam e todos confirmam o botao `PROXIMO`;
 - fotos de perfil sao redimensionadas antes de salvar para evitar travamentos e layout quebrado;
+- o mesmo dispositivo reutiliza o mesmo perfil para evitar clones ao atualizar a pagina;
 - a area de chat permite mensagens de alunos, professores e convidados durante a apresentacao;
 - no fim aparece o placar final.
 - professor pode recomecar mantendo todos na sala ou criar uma nova sala.

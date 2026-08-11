@@ -112,12 +112,15 @@
               <button class="mini-button" id="copyCode" title="Copiar codigo">copiar</button>
             </div>
             <ul class="player-list" id="queueList"></ul>
+            <div class="side-section">
+              <span>Convidados</span>
+              <ul class="guest-list" id="guestList"></ul>
+            </div>
           </aside>
 
           <section class="show-area">
             <div class="stage-toolbar">
               <div class="ribbon tiny" id="stageTitle">PALCO</div>
-              <button class="icon-round" id="finishRoom" title="Finalizar show">!</button>
             </div>
 
             <section class="invite-box" id="inviteBox">
@@ -139,7 +142,6 @@
               <section class="professor-box">
                 <div class="box-label">PROFESSORES</div>
                 <ul class="teacher-list" id="teacherList"></ul>
-                <ul class="guest-list" id="guestList"></ul>
                 <div class="teacher-panel" id="teacherPanel">
                   <div class="criteria-panel">
                     <label class="score-control">
@@ -174,6 +176,7 @@
                   <div class="score-actions">
                     <button class="yellow-button" id="sendScore">DAR NOTA</button>
                     <button class="blue-button" id="nextStudent">PROXIMO</button>
+                    <button class="danger-button" id="finishRoom">FINALIZAR SHOW</button>
                   </div>
                 </div>
                 <div class="student-panel" id="studentPanel">

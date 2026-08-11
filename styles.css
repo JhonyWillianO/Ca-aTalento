@@ -295,8 +295,17 @@ h2 {
 .score-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
   gap: 14px;
+}
+
+.score-actions .danger-button {
+  display: none;
+}
+
+.score-actions .danger-button.is-active {
+  display: inline-block;
 }
 
 .blue-button,
@@ -580,6 +589,7 @@ h2 {
 
 .player-list,
 .teacher-list,
+.guest-list,
 .score-list,
 .podium {
   list-style: none;
@@ -588,8 +598,22 @@ h2 {
 }
 
 .player-list {
-  height: calc(100% - 85px);
+  max-height: calc(100% - 230px);
   overflow: auto;
+}
+
+.side-section {
+  padding: 12px 16px 16px;
+  border-top: 2px solid #d8e0e6;
+}
+
+.side-section > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #7b7f88;
+  font-size: 13px;
+  font-weight: 1000;
+  text-transform: uppercase;
 }
 
 .player-list li,
@@ -606,7 +630,8 @@ h2 {
 .avatar,
 .player-list img,
 .podium img,
-.teacher-list img {
+.teacher-list img,
+.guest-list img {
   width: 68px;
   height: 68px;
   border: 4px solid var(--blue);
@@ -780,18 +805,19 @@ h2 {
 .guest-list {
   display: grid;
   gap: 8px;
-  margin: 0 0 12px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .guest-list li {
   display: grid;
-  grid-template-columns: 46px 1fr auto;
+  grid-template-columns: 42px 1fr auto;
   gap: 8px;
   align-items: center;
   color: #777;
   font-weight: 900;
+  padding: 8px 0;
 }
 
 .guest-list img {

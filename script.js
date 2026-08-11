@@ -1,10 +1,12 @@
+const savedProfile = JSON.parse(localStorage.getItem("talent-profile") || "{}");
+
 const app = {
   profile: {
-    id: crypto.randomUUID(),
-    name: "",
-    photo: "",
-    role: "student",
-    roomCode: ""
+    id: savedProfile.id || crypto.randomUUID(),
+    name: savedProfile.name || "",
+    photo: savedProfile.photo || "",
+    role: savedProfile.role || "student",
+    roomCode: savedProfile.roomCode || ""
   },
   room: null,
   selectedRoom: "",
@@ -50,6 +52,10 @@ function normalizeCode(value) {
 
 function makeCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+function saveProfile() {
+  localStorage.setItem("talent-profile", JSON.stringify(app.profile));
 }
 
 function defaultAvatar(role) {
@@ -123,6 +129,19 @@ async function loadRooms() {
   return localRooms();
 }
 
+async function deleteRoom(code) {
+  const cleanCode = normalizeCode(code);
+  localStorage.removeItem(roomKey(cleanCode));
+
+  if (USE_REMOTE_STORAGE) {
+    try {
+      await fetch(`/api/rooms/${cleanCode}`, { method: "DELETE" });
+    } catch {
+      // Local cleanup is enough when offline.
+    }
+  }
+}
+
 async function saveRoom(room) {
   localStorage.setItem(roomKey(room.code), JSON.stringify(room));
   app.room = room;
@@ -170,6 +189,7 @@ function profileReady() {
   const typedName = $("#nameInput").value.trim();
   app.profile.name = typedName || randomName();
   $("#nameInput").value = app.profile.name;
+  saveProfile();
   updateHeader();
   return true;
 }
@@ -183,6 +203,13 @@ function updateHeader() {
   $("#headerName").textContent = app.profile.name || "Visitante";
   $("#headerAvatar").src = avatarFor(app.profile);
   $("#profilePhoto").src = avatarFor(app.profile);
+  $("#nameInput").value = app.profile.name || "";
+}
+
+function syncRoleButtons() {
+  $$(".role-pill").forEach((item) => {
+    item.classList.toggle("is-selected", item.dataset.role === app.profile.role);
+  });
 }
 
 function addEvent(room, text) {
@@ -250,9 +277,20 @@ async function joinRoom(code, shouldCreate = false) {
 
   app.profile.roomCode = cleanCode;
   app.selectedRoom = cleanCode;
+  saveProfile();
   await saveRoom(room);
   render();
   showScreen(room.status === "finished" ? "scoreboard" : "stage");
+}
+
+async function createUniqueRoomCode() {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const code = makeCode();
+    const existing = await loadRoom(code);
+    if (!existing) return code;
+  }
+
+  return makeCode();
 }
 
 function currentStudent(room = app.room) {
@@ -444,7 +482,14 @@ async function syncActiveRoom() {
   if (!USE_REMOTE_STORAGE || !app.room?.code) return;
 
   const latest = await loadRoom(app.room.code);
-  if (!latest) return;
+  if (!latest) {
+    app.room = null;
+    app.profile.roomCode = "";
+    saveProfile();
+    alert("Esta sala foi fechada pelo organizador.");
+    showScreen("room");
+    return;
+  }
 
   if (latest.participants && !latest.participants[app.profile.id]) {
     app.room = null;
@@ -715,7 +760,7 @@ function renderStage() {
   $("#teacherPanel").classList.toggle("is-active", app.profile.role === "teacher" && live);
   $("#studentPanel").classList.toggle("is-active", app.profile.role === "student" && live);
   $("#viewerPanel").classList.toggle("is-active", app.profile.role === "viewer" && live);
-  $("#finishRoom").style.display = app.profile.role === "teacher" && live ? "grid" : "none";
+  $("#finishRoom").classList.toggle("is-active", isRoomOwner() && live);
   $("#inviteBox").classList.toggle("is-active", app.profile.role === "teacher" && live);
   if (app.profile.role === "teacher" && live) renderQrCode(app.room.code);
 
@@ -838,6 +883,7 @@ $("#photoInput").addEventListener("change", async (event) => {
   try {
     const photo = await resizeProfilePhoto(file);
     app.profile.photo = photo;
+    saveProfile();
     $("#profilePhoto").src = photo;
     updateHeader();
   } catch {
@@ -848,8 +894,8 @@ $("#photoInput").addEventListener("change", async (event) => {
 $$("[data-role]").forEach((button) => {
   button.addEventListener("click", () => {
     app.profile.role = button.dataset.role;
-    $$(".role-pill").forEach((item) => item.classList.remove("is-selected"));
-    button.classList.add("is-selected");
+    saveProfile();
+    syncRoleButtons();
     updateHeader();
   });
 });
@@ -871,7 +917,9 @@ $("#createRoom").addEventListener("click", async () => {
     alert("Somente professores podem criar sala.");
     return;
   }
-  const code = normalizeCode($("#roomInput").value) || makeCode();
+  const code = await createUniqueRoomCode();
+  $("#roomInput").value = code;
+  $("#selectedRoomLabel").textContent = code;
   await joinRoom(code, true);
 });
 
@@ -1013,6 +1061,14 @@ $("#nextStudent").addEventListener("click", async () => {
 $("#finishRoom").addEventListener("click", async () => {
   const room = await loadRoom(app.room.code);
   if (!room) return;
+  if (!isRoomOwner(room)) {
+    alert("Somente o professor que criou a sala pode finalizar o show.");
+    return;
+  }
+
+  const confirmed = window.confirm("Tem certeza que quer finalizar o show?");
+  if (!confirmed) return;
+
   room.status = "finished";
   addEvent(room, "Professor finalizou o show.");
   await saveRoom(room);
@@ -1032,9 +1088,14 @@ $("#joinQueue").addEventListener("click", async () => {
   render();
 });
 
-$("#newCompetition").addEventListener("click", () => {
+$("#newCompetition").addEventListener("click", async () => {
+  if (app.room?.code && isRoomOwner(app.room)) {
+    await deleteRoom(app.room.code);
+  }
+
   app.room = null;
   app.profile.roomCode = "";
+  saveProfile();
   $("#roomInput").value = "";
   $("#selectedRoomLabel").textContent = "---";
   showScreen("room");
@@ -1122,7 +1183,8 @@ function hydrateFromUrl() {
 
   if (["student", "teacher", "viewer"].includes(role)) {
     app.profile.role = role;
-    $$(".role-pill").forEach((item) => item.classList.toggle("is-selected", item.dataset.role === role));
+    saveProfile();
+    syncRoleButtons();
   }
 
   if (room) {
@@ -1134,5 +1196,6 @@ function hydrateFromUrl() {
 
 hydrateFromUrl();
 updateHeader();
+syncRoleButtons();
 updateScoreTotal();
 window.setInterval(syncActiveRoom, 2500);
