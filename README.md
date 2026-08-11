@@ -37,5 +37,21 @@ Abra o `index.html` em duas abas do mesmo navegador:
 Para testar mais rapido, clique em `SALA TESTE`. O app cria a sala `TESTE1`
 com dados prontos para validar o palco, professores, registros, notas e placar.
 
-Esta versao salva os dados no navegador. Para alunos e professores em computadores diferentes, o proximo passo e ligar um backend em tempo real, como Firebase, Supabase ou Socket.io.
+## Netlify
+
+No Netlify, as salas usam Netlify Functions + Netlify Blobs para ficarem
+compartilhadas entre computador, celular e outros dispositivos.
+
+Arquivos importantes:
+
+- `netlify.toml`
+- `netlify/functions/rooms.mjs`
+- `package.json`
+
+Depois de atualizar o site no Netlify, professor cria a sala, alunos entram com
+o mesmo codigo e convidados podem votar pelo celular. A tela sincroniza
+automaticamente a cada poucos segundos.
+
+Abrindo o `index.html` direto no computador, o app ainda usa `localStorage`
+como modo de teste local.
 "# Ca-aTalento" 

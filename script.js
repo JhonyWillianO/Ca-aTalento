@@ -36,6 +36,7 @@ const PUBLIC_VOTES = {
 
 let scannerStream = null;
 let scannerTimer = null;
+const USE_REMOTE_STORAGE = location.protocol.startsWith("http");
 
 function showScreen(name) {
   Object.values(screens).forEach((screen) => screen.classList.remove("is-active"));
@@ -83,12 +84,12 @@ function roomKey(code) {
   return `talent-room-${code}`;
 }
 
-function getRoom(code) {
+function getLocalRoom(code) {
   const saved = localStorage.getItem(roomKey(code));
   return saved ? JSON.parse(saved) : null;
 }
 
-function allRooms() {
+function localRooms() {
   return Object.keys(localStorage)
     .filter((key) => key.startsWith("talent-room-"))
     .map((key) => JSON.parse(localStorage.getItem(key)))
@@ -96,10 +97,65 @@ function allRooms() {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-function saveRoom(room) {
+async function loadRoom(code) {
+  const cleanCode = normalizeCode(code);
+  if (USE_REMOTE_STORAGE) {
+    try {
+      const response = await fetch(`/api/rooms/${cleanCode}`, { cache: "no-store" });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.room) {
+          localStorage.setItem(roomKey(cleanCode), JSON.stringify(data.room));
+          return data.room;
+        }
+      }
+      if (response.status === 404) return null;
+    } catch {
+      // Local fallback keeps the app usable when opened outside Netlify.
+    }
+  }
+
+  return getLocalRoom(cleanCode);
+}
+
+async function loadRooms() {
+  if (USE_REMOTE_STORAGE) {
+    try {
+      const response = await fetch("/api/rooms", { cache: "no-store" });
+      if (response.ok) {
+        const data = await response.json();
+        return (data.rooms || []).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+      }
+    } catch {
+      // Local fallback below.
+    }
+  }
+
+  return localRooms();
+}
+
+async function saveRoom(room) {
   localStorage.setItem(roomKey(room.code), JSON.stringify(room));
-  app.channel.postMessage({ code: room.code });
   app.room = room;
+
+  if (USE_REMOTE_STORAGE) {
+    try {
+      const response = await fetch(`/api/rooms/${room.code}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(room)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.room) app.room = data.room;
+      }
+    } catch {
+      // The local copy remains available if the network briefly fails.
+    }
+  }
+
+  app.channel.postMessage({ code: room.code });
 }
 
 function createRoom(code) {
@@ -116,7 +172,7 @@ function createRoom(code) {
   };
 }
 
-function createTestRoom() {
+async function createTestRoom() {
   const now = Date.now();
   const room = createRoom("TESTE1");
   room.createdAt = now;
@@ -195,7 +251,7 @@ function createTestRoom() {
     { id: crypto.randomUUID(), text: "Rafael subiu ao palco.", at: now - 900 },
     { id: crypto.randomUUID(), text: "Familia da Livia entrou para acompanhar.", at: now - 500 }
   ];
-  saveRoom(room);
+  await saveRoom(room);
   return room;
 }
 
@@ -243,7 +299,7 @@ function roleLabel(role) {
   return "aluno";
 }
 
-function joinRoom(code, shouldCreate = false) {
+async function joinRoom(code, shouldCreate = false) {
   if (!profileReady()) return;
 
   const cleanCode = shouldCreate ? normalizeCode(code || makeCode()) : normalizeCode(code);
@@ -252,7 +308,7 @@ function joinRoom(code, shouldCreate = false) {
     return;
   }
 
-  let room = getRoom(cleanCode);
+  let room = await loadRoom(cleanCode);
 
   if (!room && shouldCreate) room = createRoom(cleanCode);
 
@@ -268,7 +324,7 @@ function joinRoom(code, shouldCreate = false) {
 
   app.profile.roomCode = cleanCode;
   app.selectedRoom = cleanCode;
-  saveRoom(room);
+  await saveRoom(room);
   render();
   showScreen(room.status === "finished" ? "scoreboard" : "stage");
 }
@@ -392,7 +448,8 @@ function isLastStudent(room = app.room) {
   return !room || room.queue.length === 0 || room.currentIndex >= room.queue.length - 1;
 }
 
-function advanceRoom(room) {
+async function advanceRoom(room) {
+  if (!room) return;
   if (room.currentIndex < room.queue.length - 1) {
     room.currentIndex += 1;
     const next = currentStudent(room);
@@ -401,7 +458,22 @@ function advanceRoom(room) {
     room.status = "finished";
     addEvent(room, "Show finalizado. Placar liberado.");
   }
-  saveRoom(room);
+  await saveRoom(room);
+}
+
+async function syncActiveRoom() {
+  if (!USE_REMOTE_STORAGE || !app.room?.code) return;
+
+  const latest = await loadRoom(app.room.code);
+  if (!latest) return;
+
+  const previousStatus = app.room.status;
+  app.room = latest;
+  render();
+
+  if (latest.status !== previousStatus) {
+    showScreen(latest.status === "finished" ? "scoreboard" : "stage");
+  }
 }
 
 function renderEmpty(target) {
@@ -426,10 +498,10 @@ function personLine(person, metaText) {
   return li;
 }
 
-function renderRooms() {
+async function renderRooms() {
   const grid = $("#roomGrid");
   const filter = normalizeCode($("#roomInput").value);
-  const rooms = allRooms().filter((room) => !filter || room.code.includes(filter));
+  const rooms = (await loadRooms()).filter((room) => !filter || room.code.includes(filter));
   grid.innerHTML = "";
 
   if (!rooms.length) {
@@ -710,10 +782,10 @@ $("#openRooms").addEventListener("click", () => {
   showScreen("room");
 });
 
-function enterTestRoom() {
+async function enterTestRoom() {
   if (!profileReady()) return;
   app.profile.role = app.profile.role || "teacher";
-  const room = createTestRoom();
+  const room = await createTestRoom();
   upsertParticipant(room);
 
   if (app.profile.role === "student" && !room.queue.includes(app.profile.id)) {
@@ -724,7 +796,7 @@ function enterTestRoom() {
   app.selectedRoom = room.code;
   $("#roomInput").value = room.code;
   $("#selectedRoomLabel").textContent = room.code;
-  saveRoom(room);
+  await saveRoom(room);
   renderStage();
   showScreen("stage");
 }
@@ -739,25 +811,26 @@ $("#roomInput").addEventListener("input", (event) => {
   renderRooms();
 });
 
-$("#createRoom").addEventListener("click", () => {
+$("#createRoom").addEventListener("click", async () => {
   if (app.profile.role !== "teacher") {
     alert("Somente professores podem criar sala.");
     return;
   }
   const code = normalizeCode($("#roomInput").value) || makeCode();
-  joinRoom(code, true);
+  await joinRoom(code, true);
 });
 
-$("#joinRoom").addEventListener("click", () => {
-  joinRoom($("#roomInput").value || app.selectedRoom, false);
+$("#joinRoom").addEventListener("click", async () => {
+  await joinRoom($("#roomInput").value || app.selectedRoom, false);
 });
 
 $$("[data-public-vote]").forEach((button) => {
-  button.addEventListener("click", () => {
+  button.addEventListener("click", async () => {
     const performer = currentStudent();
     if (!performer) return;
 
-    const room = getRoom(app.room.code);
+    const room = await loadRoom(app.room.code);
+    if (!room) return;
     room.audienceVotes ||= {};
     room.audienceVotes[performer.id] ||= {};
 
@@ -771,7 +844,7 @@ $$("[data-public-vote]").forEach((button) => {
     const vote = button.dataset.publicVote;
     room.audienceVotes[performer.id][app.profile.id] = vote;
     addEvent(room, `${app.profile.name} votou ${PUBLIC_VOTES[vote].label} para ${performer.name}.`);
-    saveRoom(room);
+    await saveRoom(room);
     render();
   });
 });
@@ -786,11 +859,12 @@ $$("[data-criterion]").forEach((input) => {
   input.addEventListener("input", updateScoreTotal);
 });
 
-$("#sendScore").addEventListener("click", () => {
+$("#sendScore").addEventListener("click", async () => {
   const performer = currentStudent();
   if (!performer) return;
 
-  const room = getRoom(app.room.code);
+  const room = await loadRoom(app.room.code);
+  if (!room) return;
   room.scores[performer.id] ||= {};
   if (teacherScoredStudent(performer.id, app.profile.id, room)) {
     alert("Voce ja deu nota para este aluno nesta rodada.");
@@ -803,34 +877,37 @@ $("#sendScore").addEventListener("click", () => {
   room.scores[performer.id][app.profile.id] = score;
   addEvent(room, `${app.profile.name} avaliou ${performer.name}: ${scoreTotal(score).toFixed(1)} pts.`);
 
-  saveRoom(room);
+  await saveRoom(room);
   render();
 });
 
-$("#nextStudent").addEventListener("click", () => {
-  const room = getRoom(app.room.code);
-  advanceRoom(room);
+$("#nextStudent").addEventListener("click", async () => {
+  const room = await loadRoom(app.room.code);
+  if (!room) return;
+  await advanceRoom(room);
   render();
   if (app.room.status === "finished") showScreen("scoreboard");
 });
 
-$("#finishRoom").addEventListener("click", () => {
-  const room = getRoom(app.room.code);
+$("#finishRoom").addEventListener("click", async () => {
+  const room = await loadRoom(app.room.code);
+  if (!room) return;
   room.status = "finished";
   addEvent(room, "Professor finalizou o show.");
-  saveRoom(room);
+  await saveRoom(room);
   renderScoreboard();
   showScreen("scoreboard");
 });
 
-$("#joinQueue").addEventListener("click", () => {
-  const room = getRoom(app.room.code);
+$("#joinQueue").addEventListener("click", async () => {
+  const room = await loadRoom(app.room.code);
+  if (!room) return;
   if (!room.queue.includes(app.profile.id)) {
     room.queue.push(app.profile.id);
     addEvent(room, `${app.profile.name} entrou na fila.`);
   }
   upsertParticipant(room);
-  saveRoom(room);
+  await saveRoom(room);
   render();
 });
 
@@ -842,18 +919,20 @@ $("#newCompetition").addEventListener("click", () => {
   showScreen("room");
 });
 
-$("#restartCompetition").addEventListener("click", () => {
-  const room = getRoom(app.room.code);
+$("#restartCompetition").addEventListener("click", async () => {
+  const room = await loadRoom(app.room.code);
+  if (!room) return;
   resetRoomForNewRound(room);
   upsertParticipant(room);
-  saveRoom(room);
+  await saveRoom(room);
   renderStage();
   showScreen("stage");
 });
 
-app.channel.addEventListener("message", (event) => {
+app.channel.addEventListener("message", async (event) => {
   if (!app.room || event.data.code !== app.room.code) return;
-  app.room = getRoom(app.room.code);
+  app.room = await loadRoom(app.room.code);
+  if (!app.room) return;
   render();
   showScreen(app.room.status === "finished" ? "scoreboard" : "stage");
 });
@@ -930,3 +1009,4 @@ function hydrateFromUrl() {
 hydrateFromUrl();
 updateHeader();
 updateScoreTotal();
+window.setInterval(syncActiveRoom, 2500);
