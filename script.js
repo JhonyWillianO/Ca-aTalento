@@ -151,9 +151,12 @@ function createRoom(code) {
   return {
     code,
     status: "live",
+    ownerId: app.profile.role === "teacher" ? app.profile.id : "",
+    ownerName: app.profile.role === "teacher" ? app.profile.name : "",
     roundId: crypto.randomUUID(),
     currentIndex: 0,
     participants: {},
+    removedParticipantIds: [],
     queue: [],
     scores: {},
     nextVotes: {},
@@ -263,6 +266,16 @@ function teachers(room = app.room) {
 
 function students(room = app.room) {
   return (room?.queue || []).map((id) => room.participants[id]).filter(Boolean);
+}
+
+function roomOwnerId(room = app.room) {
+  if (room?.ownerId) return room.ownerId;
+  const firstTeacher = teachers(room).sort((a, b) => a.joinedAt - b.joinedAt)[0];
+  return firstTeacher?.id || "";
+}
+
+function isRoomOwner(room = app.room) {
+  return app.profile.role === "teacher" && roomOwnerId(room) === app.profile.id;
 }
 
 function resetRoomForNewRound(room) {
@@ -387,6 +400,33 @@ function isLastStudent(room = app.room) {
   return !room || room.queue.length === 0 || room.currentIndex >= room.queue.length - 1;
 }
 
+function removeParticipantFromRoom(room, participantId) {
+  const participant = room.participants?.[participantId];
+  if (!participant || participantId === roomOwnerId(room)) return false;
+
+  room.removedParticipantIds ||= [];
+  if (!room.removedParticipantIds.includes(participantId)) {
+    room.removedParticipantIds.push(participantId);
+  }
+
+  delete room.participants[participantId];
+  room.queue = (room.queue || []).filter((id) => id !== participantId);
+  if (room.currentIndex >= room.queue.length) {
+    room.currentIndex = Math.max(0, room.queue.length - 1);
+  }
+
+  delete room.scores?.[participantId];
+  delete room.audienceVotes?.[participantId];
+  delete room.nextVotes?.[participantId];
+
+  Object.values(room.scores || {}).forEach((scoreByTeacher) => delete scoreByTeacher[participantId]);
+  Object.values(room.audienceVotes || {}).forEach((voteByViewer) => delete voteByViewer[participantId]);
+  Object.values(room.nextVotes || {}).forEach((nextByTeacher) => delete nextByTeacher[participantId]);
+
+  addEvent(room, `${participant.name} foi removido da sala pelo organizador.`);
+  return true;
+}
+
 async function advanceRoom(room) {
   if (!room) return;
   if (room.currentIndex < room.queue.length - 1) {
@@ -405,6 +445,14 @@ async function syncActiveRoom() {
 
   const latest = await loadRoom(app.room.code);
   if (!latest) return;
+
+  if (latest.participants && !latest.participants[app.profile.id]) {
+    app.room = null;
+    app.profile.roomCode = "";
+    alert("Voce foi removido da sala pelo organizador.");
+    showScreen("room");
+    return;
+  }
 
   const previousStatus = app.room.status;
   app.room = latest;
@@ -524,6 +572,44 @@ function renderTeachers() {
   });
 }
 
+function renderOwnerControls() {
+  const owner = isRoomOwner();
+  const box = $("#ownerBox");
+  const list = $("#manageList");
+  box.classList.toggle("is-active", owner && app.room?.status !== "finished");
+  list.innerHTML = "";
+
+  if (!owner) return;
+
+  const participants = Object.values(app.room.participants || {})
+    .filter((person) => person.id !== app.profile.id)
+    .sort((a, b) => roleLabel(a.role).localeCompare(roleLabel(b.role)) || a.name.localeCompare(b.name));
+
+  if (!participants.length) {
+    renderEmpty(list);
+    return;
+  }
+
+  participants.forEach((person) => {
+    const item = document.createElement("li");
+    const body = document.createElement("div");
+    const name = document.createElement("strong");
+    const role = document.createElement("span");
+    const button = document.createElement("button");
+
+    name.textContent = person.name;
+    role.textContent = roleLabel(person.role);
+    button.className = "remove-button";
+    button.type = "button";
+    button.textContent = "REMOVER";
+    button.dataset.removeParticipant = person.id;
+
+    body.append(name, role);
+    item.append(body, button);
+    list.append(item);
+  });
+}
+
 function renderScores() {
   const list = $("#scoreList");
   list.innerHTML = "";
@@ -589,9 +675,10 @@ function renderScoreboard() {
     });
   }
 
-  const isTeacher = app.profile.role === "teacher";
-  $("#finishActions").style.display = isTeacher ? "grid" : "none";
-  $("#waitingHost").classList.toggle("is-active", !isTeacher);
+  const owner = isRoomOwner();
+  $("#finishActions").style.display = owner ? "grid" : "none";
+  $("#waitingHost").textContent = "Aguardando o professor organizador iniciar outra rodada.";
+  $("#waitingHost").classList.toggle("is-active", !owner);
   renderPublicSummary();
 }
 
@@ -671,6 +758,7 @@ function renderStage() {
 
   renderQueue();
   renderTeachers();
+  renderOwnerControls();
   renderScores();
 }
 
@@ -813,6 +901,29 @@ $("#chatForm").addEventListener("submit", async (event) => {
   render();
 });
 
+$("#manageList").addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-remove-participant]");
+  if (!button) return;
+
+  const room = await loadRoom(app.room.code);
+  if (!room || !isRoomOwner(room)) {
+    alert("Somente o professor que criou a sala pode remover participantes.");
+    return;
+  }
+
+  const participantId = button.dataset.removeParticipant;
+  const participant = room.participants?.[participantId];
+  if (!participant) return;
+
+  const confirmed = window.confirm(`Remover ${participant.name} da sala?`);
+  if (!confirmed) return;
+
+  if (removeParticipantFromRoom(room, participantId)) {
+    await saveRoom(room);
+    render();
+  }
+});
+
 $$("[data-public-vote]").forEach((button) => {
   button.addEventListener("click", async () => {
     const performer = currentStudent();
@@ -936,6 +1047,11 @@ $("#newCompetition").addEventListener("click", () => {
 $("#restartCompetition").addEventListener("click", async () => {
   const room = await loadRoom(app.room.code);
   if (!room) return;
+  if (!isRoomOwner(room)) {
+    alert("Somente o professor que criou a sala pode recomeçar.");
+    return;
+  }
+
   resetRoomForNewRound(room);
   upsertParticipant(room);
   await saveRoom(room);

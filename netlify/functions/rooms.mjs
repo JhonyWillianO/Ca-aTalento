@@ -45,6 +45,29 @@ function mergeEvents(existing = [], incoming = []) {
     .slice(0, 80);
 }
 
+function withoutRemovedParticipants(participants = {}, removedIds = []) {
+  const cleaned = { ...participants };
+  removedIds.forEach((id) => delete cleaned[id]);
+  return cleaned;
+}
+
+function withoutRemovedNested(values = {}, removedIds = []) {
+  const cleaned = {};
+
+  for (const [outerKey, innerValue] of Object.entries(values || {})) {
+    if (removedIds.includes(outerKey)) continue;
+
+    if (innerValue && typeof innerValue === "object" && !Array.isArray(innerValue)) {
+      cleaned[outerKey] = { ...innerValue };
+      removedIds.forEach((id) => delete cleaned[outerKey][id]);
+    } else {
+      cleaned[outerKey] = innerValue;
+    }
+  }
+
+  return cleaned;
+}
+
 function mergeRoom(existing, incoming) {
   if (!existing) return incoming;
 
@@ -55,11 +78,23 @@ function mergeRoom(existing, incoming) {
     ? incoming.status
     : existing.status;
   const restarting = newRound || (existing.status === "finished" && incoming.status === "live");
-  const currentIndex = restarting
+  const proposedIndex = restarting
     ? Number(incoming.currentIndex || 0)
     : status === "live"
       ? Math.max(Number(existing.currentIndex || 0), Number(incoming.currentIndex || 0))
       : Number(incoming.currentIndex || existing.currentIndex || 0);
+  const removedParticipantIds = [
+    ...new Set([...(existing.removedParticipantIds || []), ...(incoming.removedParticipantIds || [])])
+  ];
+  const participants = withoutRemovedParticipants(
+    { ...(existing.participants || {}), ...(incoming.participants || {}) },
+    removedParticipantIds
+  );
+  const queue = (incoming.queue || existing.queue || []).filter((id) => !removedParticipantIds.includes(id));
+  const currentIndex = Math.min(Math.max(0, proposedIndex), Math.max(0, queue.length - 1));
+  const scores = newRound ? (incoming.scores || {}) : mergeNested(existing.scores, incoming.scores);
+  const audienceVotes = newRound ? (incoming.audienceVotes || {}) : mergeNested(existing.audienceVotes, incoming.audienceVotes);
+  const nextVotes = newRound ? (incoming.nextVotes || {}) : mergeNested(existing.nextVotes, incoming.nextVotes);
 
   return {
     ...existing,
@@ -67,10 +102,12 @@ function mergeRoom(existing, incoming) {
     status,
     roundId: incomingRound,
     currentIndex,
-    participants: { ...(existing.participants || {}), ...(incoming.participants || {}) },
-    scores: newRound ? (incoming.scores || {}) : mergeNested(existing.scores, incoming.scores),
-    audienceVotes: newRound ? (incoming.audienceVotes || {}) : mergeNested(existing.audienceVotes, incoming.audienceVotes),
-    nextVotes: newRound ? (incoming.nextVotes || {}) : mergeNested(existing.nextVotes, incoming.nextVotes),
+    removedParticipantIds,
+    participants,
+    queue,
+    scores: withoutRemovedNested(scores, removedParticipantIds),
+    audienceVotes: withoutRemovedNested(audienceVotes, removedParticipantIds),
+    nextVotes: withoutRemovedNested(nextVotes, removedParticipantIds),
     events: newRound ? (incoming.events || []) : mergeEvents(existing.events, incoming.events)
   };
 }

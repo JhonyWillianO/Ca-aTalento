@@ -5,6 +5,8 @@ Aplicativo web inspirado no visual do Gartic, feito para uma competicao de apres
 - aluno, professor ou convidados entram sem login, apenas com nick e avatar;
 - professor cria uma sala com codigo;
 - apenas professores podem criar sala;
+- o professor que criou a sala vira organizador;
+- somente o organizador pode recomeçar a sala e remover alunos, professores ou convidados;
 - alunos entram na sala com o codigo enviado pelo professor e ficam em fila;
 - convidados entram com codigo ou scanner de QR Code para acompanhar;
 - professor da nota para o aluno da vez;
