@@ -22,7 +22,9 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
   color: var(--ink);
   background-color: #f4f7ee;
   background-image:
@@ -122,6 +124,7 @@ button:disabled {
 .app-shell {
   width: min(1230px, calc(100% - 36px));
   margin: 0 auto 28px;
+  overflow: visible;
 }
 
 .screen {
@@ -1203,6 +1206,7 @@ h2 {
   gap: 8px;
   max-width: 720px;
   width: 100%;
+  min-width: 0;
   margin: 0 auto;
   padding: 16px;
   border: 3px solid #9db1bf;
@@ -1229,6 +1233,7 @@ h2 {
   overflow: visible;
   display: grid;
   align-items: center;
+  grid-template-columns: 54px 76px minmax(0, 1fr);
   gap: 12px;
   padding: 12px 16px;
   background:
@@ -1236,6 +1241,17 @@ h2 {
     radial-gradient(circle at 12% 20%, rgba(220, 174, 49, 0.22), transparent 28%);
   box-shadow: 0 6px 0 rgba(3, 28, 79, 0.18), 0 18px 38px rgba(10, 111, 134, 0.16);
   transition: opacity 420ms ease, transform 420ms ease, filter 420ms ease;
+}
+
+.rank-card > div:last-child {
+  min-width: 0;
+}
+
+.rank-card strong,
+.rank-card .meta,
+.public-summary span,
+.public-summary strong {
+  overflow-wrap: anywhere;
 }
 
 .rank-card.is-hidden {
@@ -1596,6 +1612,194 @@ h2 {
 
   .player-list {
     max-height: 320px;
+  }
+}
+
+@media (max-width: 640px) {
+  .game-header,
+  .app-shell {
+    width: min(100% - 20px, 560px);
+  }
+
+  .game-header {
+    gap: 10px;
+  }
+
+  .app-logo {
+    font-size: 26px;
+    text-align: left;
+  }
+
+  .header-profile {
+    gap: 6px;
+    font-size: 18px;
+  }
+
+  .header-profile img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .join-card,
+  .rooms-card,
+  .score-card {
+    padding: 14px;
+    border-width: 2px;
+    border-radius: 14px;
+  }
+
+  .score-card {
+    gap: 16px;
+  }
+
+  .score-card .ribbon {
+    min-height: 58px;
+    margin: 0 auto 6px;
+    border-width: 4px;
+    border-radius: 16px;
+    font-size: clamp(24px, 8vw, 34px);
+  }
+
+  .public-summary {
+    max-width: 100%;
+    padding: 12px;
+    border-width: 2px;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .podium {
+    max-width: 100%;
+    gap: 10px;
+  }
+
+  .podium li,
+  .rank-card,
+  .rank-card.rank-1 {
+    grid-template-columns: 46px 68px minmax(0, 1fr);
+    gap: 9px;
+    min-height: 92px;
+    padding: 10px;
+  }
+
+  .rank-card.rank-1 {
+    min-height: 104px;
+  }
+
+  .rank-photo,
+  .rank-card.rank-1 .rank-photo {
+    width: 64px;
+    height: 64px;
+  }
+
+  .rank-award {
+    top: -16px;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    border-width: 2px;
+    font-size: 20px;
+  }
+
+  .medal {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .podium strong,
+  .rank-card strong {
+    font-size: clamp(18px, 5vw, 24px);
+    line-height: 1.05;
+  }
+
+  .meta,
+  .rank-card .meta {
+    font-size: clamp(14px, 4.2vw, 18px);
+    line-height: 1.18;
+  }
+
+  .finish-actions p,
+  .waiting-host {
+    font-size: 16px;
+  }
+
+  .blue-button,
+  .yellow-button,
+  .test-button,
+  .danger-button {
+    width: min(100%, 310px);
+    min-width: 0;
+    min-height: 54px;
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 380px) {
+  .game-header,
+  .app-shell {
+    width: calc(100% - 12px);
+  }
+
+  .join-card,
+  .rooms-card,
+  .score-card {
+    padding: 10px;
+  }
+
+  .podium li,
+  .rank-card,
+  .rank-card.rank-1 {
+    grid-template-columns: 36px 58px minmax(0, 1fr);
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .rank-photo,
+  .rank-card.rank-1 .rank-photo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .rank-award {
+    top: -14px;
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+  }
+
+  .medal {
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+  }
+
+  .public-summary {
+    font-size: 13px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .game-header {
+    min-height: 64px;
+    padding: 8px 0;
+  }
+
+  .app-shell {
+    margin-bottom: 12px;
+  }
+
+  .score-card {
+    gap: 10px;
+  }
+
+  .score-card .ribbon {
+    min-height: 50px;
+    margin-bottom: 0;
+  }
+
+  .public-summary {
+    padding: 10px;
   }
 }
 
