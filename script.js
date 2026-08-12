@@ -39,6 +39,92 @@ const PUBLIC_VOTES = {
 let scannerStream = null;
 let scannerTimer = null;
 const USE_REMOTE_STORAGE = location.protocol.startsWith("http");
+let audioContext = null;
+let knownParticipantIds = new Set();
+
+function cleanText(value = "", maxLength = 80) {
+  return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function ensureAudio() {
+  const AudioCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtor) return null;
+  audioContext ||= new AudioCtor();
+  if (audioContext.state === "suspended") audioContext.resume();
+  return audioContext;
+}
+
+function playTone(frequency, start, duration, type = "sine", gain = 0.12) {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+
+  const oscillator = ctx.createOscillator();
+  const volume = ctx.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, ctx.currentTime + start);
+  volume.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+  volume.gain.exponentialRampToValueAtTime(gain, ctx.currentTime + start + 0.02);
+  volume.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + duration);
+  oscillator.connect(volume).connect(ctx.destination);
+  oscillator.start(ctx.currentTime + start);
+  oscillator.stop(ctx.currentTime + start + duration + 0.02);
+}
+
+function playNoiseBurst(start, duration, gain = 0.16, filterFrequency = 1600) {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+
+  const buffer = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let index = 0; index < data.length; index += 1) {
+    data[index] = (Math.random() * 2 - 1) * (1 - index / data.length);
+  }
+
+  const source = ctx.createBufferSource();
+  const filter = ctx.createBiquadFilter();
+  const volume = ctx.createGain();
+  source.buffer = buffer;
+  filter.type = "bandpass";
+  filter.frequency.value = filterFrequency;
+  volume.gain.value = gain;
+  source.connect(filter).connect(volume).connect(ctx.destination);
+  source.start(ctx.currentTime + start);
+}
+
+function playJoinSound() {
+  playTone(520, 0, 0.12, "triangle", 0.1);
+  playTone(780, 0.1, 0.16, "triangle", 0.12);
+}
+
+function playBadVoteSound() {
+  playTone(150, 0, 0.28, "sawtooth", 0.08);
+  playNoiseBurst(0.05, 0.22, 0.07, 320);
+}
+
+function playGoodVoteSound() {
+  [0, 0.11, 0.22, 0.34].forEach((start) => playNoiseBurst(start, 0.06, 0.14, 1900));
+}
+
+function playGreatVoteSound() {
+  playGoodVoteSound();
+  playTone(660, 0.08, 0.12, "triangle", 0.08);
+  playTone(880, 0.22, 0.14, "triangle", 0.1);
+  playTone(1175, 0.38, 0.22, "triangle", 0.12);
+}
+
+function playAudienceVoteSound(vote) {
+  if (vote === "bad") playBadVoteSound();
+  if (vote === "good") playGoodVoteSound();
+  if (vote === "great") playGreatVoteSound();
+}
+
+function syncParticipantJoinSounds(room, playSound = true) {
+  const ids = new Set(Object.keys(room?.participants || {}));
+  const hasNewRemotePerson = [...ids].some((id) => !knownParticipantIds.has(id) && id !== app.profile.id);
+
+  if (playSound && knownParticipantIds.size > 0 && hasNewRemotePerson) playJoinSound();
+  knownParticipantIds = ids;
+}
 
 function showScreen(name) {
   Object.values(screens).forEach((screen) => screen.classList.remove("is-active"));
@@ -187,8 +273,9 @@ function createRoom(code) {
 }
 
 function profileReady() {
-  const typedName = $("#nameInput").value.trim();
+  const typedName = cleanText($("#nameInput").value, 32);
   app.profile.name = typedName || randomName();
+  app.profile.photo = String(app.profile.photo || "").length > 260000 ? "" : app.profile.photo;
   $("#nameInput").value = app.profile.name;
   saveProfile();
   updateHeader();
@@ -220,11 +307,14 @@ function addEvent(room, text) {
 }
 
 function addChatMessage(room, text) {
+  const safeText = cleanText(text, 180);
+  if (!safeText) return;
+
   room.events ||= [];
   room.events.unshift({
     id: crypto.randomUUID(),
     type: "chat",
-    text,
+    text: safeText,
     author: app.profile.name,
     roleLabel: roleLabel(app.profile.role),
     role: app.profile.role,
@@ -237,13 +327,14 @@ function upsertParticipant(room) {
   const previous = room.participants[app.profile.id];
   room.participants[app.profile.id] = {
     id: app.profile.id,
-    name: app.profile.name,
-    photo: app.profile.photo,
+    name: cleanText(app.profile.name, 32),
+    photo: String(app.profile.photo || "").length > 260000 ? "" : app.profile.photo,
     role: app.profile.role,
     joinedAt: previous?.joinedAt || Date.now()
   };
 
   if (!previous) addEvent(room, `${app.profile.name} entrou como ${roleLabel(app.profile.role)}.`);
+  return !previous;
 }
 
 function roleLabel(role) {
@@ -271,7 +362,7 @@ async function joinRoom(code, shouldCreate = false) {
     return;
   }
 
-  upsertParticipant(room);
+  const enteredNow = upsertParticipant(room);
   if (app.profile.role === "student" && !room.queue.includes(app.profile.id)) {
     room.queue.push(app.profile.id);
   }
@@ -280,6 +371,8 @@ async function joinRoom(code, shouldCreate = false) {
   app.selectedRoom = cleanCode;
   saveProfile();
   await saveRoom(room);
+  if (enteredNow) playJoinSound();
+  syncParticipantJoinSounds(app.room, false);
   render();
   showScreen(room.status === "finished" ? "scoreboard" : "stage");
 }
@@ -503,6 +596,7 @@ async function syncActiveRoom() {
 
   const previousStatus = app.room.status;
   app.room = latest;
+  syncParticipantJoinSounds(latest);
   render();
 
   if (latest.status !== previousStatus) {
@@ -842,6 +936,7 @@ function renderQrCode(code) {
 
 function render() {
   if (!app.room) return;
+  syncParticipantJoinSounds(app.room);
   if (app.room.status === "finished") {
     renderScoreboard();
   } else {
@@ -988,8 +1083,10 @@ $$("[data-public-vote]").forEach((button) => {
     }
 
     const vote = button.dataset.publicVote;
+    if (!PUBLIC_VOTES[vote]) return;
     room.audienceVotes[performer.id][app.profile.id] = vote;
     addEvent(room, `${app.profile.name} votou ${PUBLIC_VOTES[vote].label} para ${performer.name}.`);
+    playAudienceVoteSound(vote);
     await saveRoom(room);
     render();
   });
@@ -1203,6 +1300,7 @@ const shouldAutoJoinRoom = hydrateFromUrl();
 updateHeader();
 syncRoleButtons();
 updateScoreTotal();
+document.addEventListener("pointerdown", ensureAudio, { once: true });
 window.setInterval(syncActiveRoom, 2500);
 
 if (shouldAutoJoinRoom) {

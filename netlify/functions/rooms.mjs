@@ -5,6 +5,11 @@ const headers = {
   "Cache-Control": "no-store"
 };
 
+const MAX_BODY_BYTES = 900000;
+const MAX_EVENTS = 80;
+const MAX_PARTICIPANTS = 220;
+const VALID_ROLES = new Set(["student", "teacher", "viewer"]);
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers });
 }
@@ -13,8 +18,108 @@ function cleanCode(value = "") {
   return String(value).replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 6);
 }
 
+function cleanId(value = "") {
+  return String(value).replace(/[^a-z0-9-]/gi, "").slice(0, 80);
+}
+
+function cleanText(value = "", maxLength = 120) {
+  return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
 function roomKey(code) {
   return `room-${cleanCode(code)}`;
+}
+
+function sanitizeParticipant(person = {}, fallbackId = "") {
+  const id = cleanId(person.id || fallbackId);
+  if (!id) return null;
+
+  return {
+    id,
+    name: cleanText(person.name || "Visitante", 32),
+    photo: String(person.photo || "").length <= 260000 ? String(person.photo || "") : "",
+    role: VALID_ROLES.has(person.role) ? person.role : "student",
+    joinedAt: Number(person.joinedAt || Date.now())
+  };
+}
+
+function sanitizeParticipants(participants = {}) {
+  const cleaned = {};
+
+  for (const [key, person] of Object.entries(participants || {}).slice(0, MAX_PARTICIPANTS)) {
+    const participant = sanitizeParticipant(person, key);
+    if (participant) cleaned[participant.id] = participant;
+  }
+
+  return cleaned;
+}
+
+function sanitizeEvents(events = []) {
+  return (Array.isArray(events) ? events : [])
+    .slice(0, MAX_EVENTS)
+    .map((event) => {
+      if (typeof event === "string") {
+        return { id: cleanId(`${Date.now()}-${event}`), type: "system", text: cleanText(event, 180), at: Date.now() };
+      }
+
+      const type = event?.type === "chat" ? "chat" : "system";
+      return {
+        id: cleanId(event?.id || crypto.randomUUID()),
+        type,
+        text: cleanText(event?.text, 180),
+        author: cleanText(event?.author, 32),
+        role: VALID_ROLES.has(event?.role) ? event.role : "",
+        roleLabel: cleanText(event?.roleLabel, 24),
+        at: Number(event?.at || Date.now())
+      };
+    })
+    .filter((event) => event.text);
+}
+
+function sanitizeNested(values = {}) {
+  const cleaned = {};
+
+  for (const [outerKey, innerValue] of Object.entries(values || {})) {
+    const outerId = cleanId(outerKey);
+    if (!outerId) continue;
+
+    if (innerValue && typeof innerValue === "object" && !Array.isArray(innerValue)) {
+      cleaned[outerId] = {};
+      for (const [innerKey, value] of Object.entries(innerValue)) {
+        const innerId = cleanId(innerKey);
+        if (!innerId) continue;
+        cleaned[outerId][innerId] = value;
+      }
+    }
+  }
+
+  return cleaned;
+}
+
+function sanitizeRoom(room = {}) {
+  const participants = sanitizeParticipants(room.participants);
+  const participantIds = new Set(Object.keys(participants));
+  const queue = (Array.isArray(room.queue) ? room.queue : [])
+    .map(cleanId)
+    .filter((id, index, ids) => id && participantIds.has(id) && ids.indexOf(id) === index);
+
+  return {
+    code: cleanCode(room.code),
+    status: room.status === "finished" ? "finished" : "live",
+    ownerId: cleanId(room.ownerId),
+    ownerName: cleanText(room.ownerName, 32),
+    roundId: cleanId(room.roundId || crypto.randomUUID()),
+    roundStartedAt: Number(room.roundStartedAt || Date.now()),
+    currentIndex: Number(room.currentIndex || 0),
+    participants,
+    removedParticipantIds: (Array.isArray(room.removedParticipantIds) ? room.removedParticipantIds : []).map(cleanId).filter(Boolean),
+    queue,
+    scores: sanitizeNested(room.scores),
+    nextVotes: sanitizeNested(room.nextVotes),
+    audienceVotes: sanitizeNested(room.audienceVotes),
+    events: sanitizeEvents(room.events),
+    createdAt: Number(room.createdAt || Date.now())
+  };
 }
 
 function mergeNested(existing = {}, incoming = {}) {
@@ -69,55 +174,48 @@ function withoutRemovedNested(values = {}, removedIds = []) {
 }
 
 function mergeRoom(existing, incoming) {
-  if (!existing) return incoming;
+  const safeIncoming = sanitizeRoom(incoming);
+  if (!existing) return safeIncoming;
 
-  const existingStartedAt = Number(existing.roundStartedAt || existing.createdAt || 0);
-  const incomingStartedAt = Number(incoming.roundStartedAt || incoming.createdAt || existingStartedAt);
+  const safeExisting = sanitizeRoom(existing);
+
+  const existingStartedAt = Number(safeExisting.roundStartedAt || safeExisting.createdAt || 0);
+  const incomingStartedAt = Number(safeIncoming.roundStartedAt || safeIncoming.createdAt || existingStartedAt);
   if (incomingStartedAt < existingStartedAt) {
-    const removedParticipantIds = [
-      ...new Set([...(existing.removedParticipantIds || []), ...(incoming.removedParticipantIds || [])])
-    ];
-
-    return {
-      ...existing,
-      removedParticipantIds,
-      participants: withoutRemovedParticipants(
-        { ...(existing.participants || {}), ...(incoming.participants || {}) },
-        removedParticipantIds
-      ),
-      events: mergeEvents(existing.events, incoming.events)
-    };
+    return safeExisting;
   }
 
-  const existingRound = existing.roundId || "legacy";
-  const incomingRound = incoming.roundId || existingRound;
+  const existingRound = safeExisting.roundId || "legacy";
+  const incomingRound = safeIncoming.roundId || existingRound;
   const newRound = incomingRound !== existingRound || incomingStartedAt > existingStartedAt;
-  const status = incoming.status === "finished" || existing.status === "finished"
-    ? incoming.status
-    : existing.status;
-  const restarting = newRound || (existing.status === "finished" && incoming.status === "live");
+  const status = safeIncoming.status === "finished" || safeExisting.status === "finished"
+    ? safeIncoming.status
+    : safeExisting.status;
+  const restarting = newRound || (safeExisting.status === "finished" && safeIncoming.status === "live");
   const proposedIndex = restarting
-    ? Number(incoming.currentIndex || 0)
+    ? Number(safeIncoming.currentIndex || 0)
     : status === "live"
-      ? Math.max(Number(existing.currentIndex || 0), Number(incoming.currentIndex || 0))
-      : Number(incoming.currentIndex || existing.currentIndex || 0);
+      ? Math.max(Number(safeExisting.currentIndex || 0), Number(safeIncoming.currentIndex || 0))
+      : Number(safeIncoming.currentIndex || safeExisting.currentIndex || 0);
   const removedParticipantIds = [
-    ...new Set([...(existing.removedParticipantIds || []), ...(incoming.removedParticipantIds || [])])
+    ...new Set([...(safeExisting.removedParticipantIds || []), ...(safeIncoming.removedParticipantIds || [])])
   ];
   const participants = withoutRemovedParticipants(
-    { ...(existing.participants || {}), ...(incoming.participants || {}) },
+    { ...(safeExisting.participants || {}), ...(safeIncoming.participants || {}) },
     removedParticipantIds
   );
-  const queue = (incoming.queue || existing.queue || []).filter((id) => !removedParticipantIds.includes(id));
+  const queue = (safeIncoming.queue || safeExisting.queue || []).filter((id) => !removedParticipantIds.includes(id));
   const currentIndex = Math.min(Math.max(0, proposedIndex), Math.max(0, queue.length - 1));
-  const scores = newRound ? (incoming.scores || {}) : mergeNested(existing.scores, incoming.scores);
-  const audienceVotes = newRound ? (incoming.audienceVotes || {}) : mergeNested(existing.audienceVotes, incoming.audienceVotes);
-  const nextVotes = newRound ? (incoming.nextVotes || {}) : mergeNested(existing.nextVotes, incoming.nextVotes);
+  const scores = newRound ? (safeIncoming.scores || {}) : mergeNested(safeExisting.scores, safeIncoming.scores);
+  const audienceVotes = newRound ? (safeIncoming.audienceVotes || {}) : mergeNested(safeExisting.audienceVotes, safeIncoming.audienceVotes);
+  const nextVotes = newRound ? (safeIncoming.nextVotes || {}) : mergeNested(safeExisting.nextVotes, safeIncoming.nextVotes);
 
   return {
-    ...existing,
-    ...incoming,
+    ...safeExisting,
+    ...safeIncoming,
     status,
+    ownerId: safeExisting.ownerId || safeIncoming.ownerId,
+    ownerName: safeExisting.ownerName || safeIncoming.ownerName,
     roundId: incomingRound,
     roundStartedAt: newRound ? incomingStartedAt : existingStartedAt,
     currentIndex,
@@ -127,7 +225,7 @@ function mergeRoom(existing, incoming) {
     scores: withoutRemovedNested(scores, removedParticipantIds),
     audienceVotes: withoutRemovedNested(audienceVotes, removedParticipantIds),
     nextVotes: withoutRemovedNested(nextVotes, removedParticipantIds),
-    events: newRound ? (incoming.events || []) : mergeEvents(existing.events, incoming.events)
+    events: newRound ? (safeIncoming.events || []) : mergeEvents(safeExisting.events, safeIncoming.events)
   };
 }
 
@@ -168,7 +266,18 @@ export default async (req, context) => {
   }
 
   if (req.method === "PUT" || req.method === "POST") {
-    const room = await req.json();
+    const contentLength = Number(req.headers.get("content-length") || 0);
+    if (contentLength > MAX_BODY_BYTES) {
+      return json({ error: "Envio muito grande. Reduza a foto ou tente novamente." }, 413);
+    }
+
+    let room;
+    try {
+      room = await req.json();
+    } catch {
+      return json({ error: "JSON invalido." }, 400);
+    }
+
     if (!room || cleanCode(room.code) !== code) {
       return json({ error: "Dados da sala invalidos." }, 400);
     }
