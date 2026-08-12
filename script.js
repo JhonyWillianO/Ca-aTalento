@@ -68,7 +68,10 @@ const SOUND_FILES = {
   drumRoll: "./scratchonix-drum-roll-for-victory-366448.mp3",
   fanfare: "./u_ss015dykrt-brass-fanfare-with-timpani-and-winchimes-reverberated-146260.mp3",
   victory: "./u_it78ck90s3-orchestral-win-331233.mp3",
-  defeat: "./coghezzi-game-over-orchestral-stinger-cartoon-defeat-546515.mp3"
+  defeat: "./coghezzi-game-over-orchestral-stinger-cartoon-defeat-546515.mp3",
+  voteBad: "./freesound_community-boo-6377.mp3",
+  voteGood: "./freesound_community-palmas-maesaif-14571.mp3",
+  voteGreat: "./driken5482-applause-cheer-236786.mp3"
 };
 
 let scannerStream = null;
@@ -263,8 +266,11 @@ function playFinishSound() {
 }
 
 function playFinalResultSound(ranking) {
-  const winner = ranking[0];
-  const shouldCelebrate = app.profile.role === "teacher" || app.profile.role === "viewer" || app.profile.id === (winner && winner.id);
+  const bestScore = ranking[0] && ranking[0].finalScore;
+  const winnerIds = ranking
+    .filter((student) => scoresAreTied(student.finalScore, bestScore))
+    .map((student) => student.id);
+  const shouldCelebrate = app.profile.role === "teacher" || app.profile.role === "viewer" || winnerIds.includes(app.profile.id);
 
   if (shouldCelebrate) {
     playAudioFile(SOUND_FILES.victory, 0.86);
@@ -286,19 +292,15 @@ function playRangeSound() {
 }
 
 function playBadVoteSound() {
-  playTone(150, 0, 0.28, "sawtooth", 0.08);
-  playNoiseBurst(0.05, 0.22, 0.07, 320);
+  playAudioFile(SOUND_FILES.voteBad, 0.76);
 }
 
 function playGoodVoteSound() {
-  [0, 0.11, 0.22, 0.34].forEach((start) => playNoiseBurst(start, 0.06, 0.14, 1900));
+  playAudioFile(SOUND_FILES.voteGood, 0.78);
 }
 
 function playGreatVoteSound() {
-  playGoodVoteSound();
-  playTone(660, 0.08, 0.12, "triangle", 0.08);
-  playTone(880, 0.22, 0.14, "triangle", 0.1);
-  playTone(1175, 0.38, 0.22, "triangle", 0.12);
+  playAudioFile(SOUND_FILES.voteGreat, 0.82);
 }
 
 function playAudienceVoteSound(vote) {
@@ -675,13 +677,26 @@ function finalRanking(room = app.room) {
     }))
     .sort((a, b) => {
       if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
-      for (let index = 0; index < CRITERIA.length; index += 1) {
-        if (b.tieBreakers[index] !== a.tieBreakers[index]) {
-          return b.tieBreakers[index] - a.tieBreakers[index];
-        }
-      }
       return a.name.localeCompare(b.name);
     });
+}
+
+function scoresAreTied(a, b) {
+  return Math.abs(Number(a || 0) - Number(b || 0)) < 0.001;
+}
+
+function rankedResults(room = app.room) {
+  let currentPlacement = 0;
+  let previousScore = null;
+
+  return finalRanking(room).map((student, index) => {
+    if (previousScore === null || !scoresAreTied(student.finalScore, previousScore)) {
+      currentPlacement = index + 1;
+      previousScore = student.finalScore;
+    }
+
+    return { ...student, placement: currentPlacement };
+  });
 }
 
 function audienceVotesFor(studentId, room = app.room) {
@@ -1019,17 +1034,17 @@ function currentScoreboardKey(room = app.room) {
   return `${(room && room.code) || "local"}-${(room && room.roundId) || "round"}-${(room && room.status) || "live"}`;
 }
 
-function rankAward(rank) {
-  if (rank === 1) return { symbol: "👑", label: "Coroa de ouro", className: "gold", image: "./image-gen-1(1).png" };
-  if (rank === 2) return { symbol: "👑", label: "Coroa de prata", className: "silver", image: "./Medalha%20de%20Prata%20com%20Capivara%20Cantora.png" };
-  if (rank === 3) return { symbol: "👑", label: "Coroa de bronze", className: "bronze", image: "./Medalha%20de%20bronze%20com%20capivara%20coroada.png" };
-  if (rank === 4) return { symbol: "🏅", label: "Medalha", className: "medal-fourth", image: "./image-gen-1(4).png" };
-  return { symbol: "★", label: "Participante", className: "honor" };
+function rankAwardAsset(rank) {
+  if (rank === 1) return { symbol: "1", label: "Coroa de ouro", className: "gold", image: "./CoroaDeOuro.png" };
+  if (rank === 2) return { symbol: "2", label: "Coroa de prata", className: "silver", image: "./CoroaDePrata.png" };
+  if (rank === 3) return { symbol: "3", label: "Coroa de bronze", className: "bronze", image: "./CoroaDeBronze.png" };
+  if (rank === 4) return { symbol: "4", label: "Medalha de quarto lugar", className: "medal-fourth", image: "./4Lugar.png" };
+  return { symbol: "*", label: "Participante", className: "honor" };
 }
 
 function createRankingItem(student, index, options = {}) {
-  const rank = index + 1;
-  const award = rankAward(rank);
+  const rank = options.rank || index + 1;
+  const award = rankAwardAsset(rank);
   const li = document.createElement("li");
   const medal = document.createElement("span");
   const imageWrap = document.createElement("div");
@@ -1039,7 +1054,7 @@ function createRankingItem(student, index, options = {}) {
   const name = document.createElement("strong");
   const meta = document.createElement("span");
 
-  li.className = `rank-card rank-${rank} ${options.hidden ? "is-hidden" : "is-revealed"}`;
+  li.className = `rank-card rank-${Math.min(rank, 4)} ${options.hidden ? "is-hidden" : "is-revealed"}${options.tieWinner ? " tie-winner" : ""}`;
   medal.className = "medal";
   medal.textContent = rank;
   imageWrap.className = "rank-photo";
@@ -1097,7 +1112,7 @@ function revealScoreboardItems(items, ranking, key) {
 
 function renderRemainingRanking(ranking, canShow) {
   const target = $("#remainingRanking");
-  const remaining = ranking.slice(4);
+  const remaining = ranking.filter((student) => student.placement > 4);
   target.innerHTML = "";
 
   if (!remaining.length || !canShow) {
@@ -1111,7 +1126,7 @@ function renderRemainingRanking(ranking, canShow) {
   title.textContent = "Demais participantes";
 
   remaining.forEach((student, index) => {
-    list.append(createRankingItem(student, index + 4));
+    list.append(createRankingItem(student, index, { rank: student.placement }));
   });
 
   target.append(title, list);
@@ -1132,8 +1147,9 @@ function renderScoreboard() {
 
   podium.innerHTML = "";
 
-  const ranking = finalRanking();
-  podium.className = "podium dramatic-podium";
+  const ranking = rankedResults();
+  const hasTieWinners = ranking.filter((student) => student.placement === 1).length > 1;
+  podium.className = `podium dramatic-podium${hasTieWinners ? " has-tie-winners" : ""}`;
 
   if (!ranking.length) {
     renderEmpty(podium);
@@ -1144,19 +1160,22 @@ function renderScoreboard() {
       scoreboardRevealedRanks = new Set();
     }
 
-    const topFour = ranking.slice(0, 4);
-    const revealOrder = topFour.map((student, index) => ({ student, index })).reverse();
+    const topFour = ranking.filter((student) => student.placement <= 4);
+    const revealOrder = [...new Set(topFour.map((student) => student.placement))].sort((a, b) => b - a);
     const revealItems = [];
 
     topFour.forEach((student, index) => {
-      const rank = index + 1;
+      const rank = student.placement;
       const shouldHide = !scoreboardRevealComplete && !scoreboardRevealedRanks.has(rank);
-      const item = createRankingItem(student, index, { hidden: shouldHide });
+      const item = createRankingItem(student, index, {
+        hidden: shouldHide,
+        rank,
+        tieWinner: hasTieWinners && rank === 1
+      });
       podium.append(item);
     });
 
-    revealOrder.forEach(({ index }) => {
-      const rank = index + 1;
+    revealOrder.forEach((rank) => {
       revealItems.push({ rank });
     });
 
