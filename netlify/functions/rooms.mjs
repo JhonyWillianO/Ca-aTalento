@@ -10,6 +10,7 @@ const MAX_EVENTS = 80;
 const MAX_PARTICIPANTS = 220;
 const ROOM_IDLE_MS = 60 * 60 * 1000;
 const PARTICIPANT_STALE_MS = 60 * 60 * 1000;
+const EMPTY_TEACHER_GRACE_MS = 2 * 60 * 1000;
 const VALID_ROLES = new Set(["student", "teacher", "viewer"]);
 
 function json(data, status = 200) {
@@ -122,6 +123,7 @@ function sanitizeRoom(room = {}) {
     audienceVotes: sanitizeNested(room.audienceVotes),
     events: sanitizeEvents(room.events),
     createdAt: Number(room.createdAt || Date.now()),
+    lastActivityAt: Number(room.lastActivityAt || room.updatedAt || room.createdAt || Date.now()),
     updatedAt: Number(room.updatedAt || room.createdAt || Date.now())
   };
 }
@@ -146,8 +148,9 @@ function pruneStaleParticipants(room, now = Date.now()) {
 function roomShouldBeDeleted(room, now = Date.now()) {
   const cleaned = pruneStaleParticipants(sanitizeRoom(room), now);
   const hasTeacher = Object.values(cleaned.participants || {}).some((person) => person.role === "teacher");
-  const idleFor = now - Number(cleaned.updatedAt || cleaned.createdAt || 0);
-  return !hasTeacher || idleFor >= ROOM_IDLE_MS;
+  const age = now - Number(cleaned.createdAt || 0);
+  const idleFor = now - Number(cleaned.lastActivityAt || cleaned.createdAt || 0);
+  return (!hasTeacher && age >= EMPTY_TEACHER_GRACE_MS) || idleFor >= ROOM_IDLE_MS;
 }
 
 function mergeNested(existing = {}, incoming = {}) {
@@ -246,6 +249,7 @@ function mergeRoom(existing, incoming) {
     ownerName: safeExisting.ownerName || safeIncoming.ownerName,
     roundId: incomingRound,
     roundStartedAt: newRound ? incomingStartedAt : existingStartedAt,
+    lastActivityAt: Math.max(Number(safeExisting.lastActivityAt || 0), Number(safeIncoming.lastActivityAt || 0)),
     currentIndex,
     removedParticipantIds,
     participants,

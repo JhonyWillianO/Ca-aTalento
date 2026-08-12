@@ -337,9 +337,14 @@ h2 {
 .avatar-picker {
   width: 190px;
   height: 190px;
+  min-width: 190px;
+  min-height: 190px;
+  max-width: 190px;
+  max-height: 190px;
   position: relative;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border: 5px solid var(--yellow);
   border-radius: 50%;
   background: #fff;
@@ -349,14 +354,18 @@ h2 {
 .avatar-picker img {
   width: 100%;
   height: 100%;
+  display: block;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
+  aspect-ratio: 1;
 }
 
 .edit-badge {
   width: 54px;
   height: 54px;
   position: absolute;
+  z-index: 3;
   right: -8px;
   top: 26px;
   display: grid;
@@ -1294,6 +1303,31 @@ h2 {
   font-size: 28px;
   box-shadow: 0 5px 0 rgba(3, 28, 79, 0.2);
   animation: selectedBounce 1.8s ease-in-out infinite;
+}
+
+.rank-award img {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.rank-award.gold img {
+  object-position: 50% 24%;
+}
+
+.rank-award.silver img {
+  object-position: 50% 18%;
+}
+
+.rank-award.bronze img {
+  object-position: 50% 18%;
+}
+
+.rank-award.medal-fourth img {
+  object-position: 78% 50%;
 }
 
 .rank-award.gold {

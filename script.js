@@ -372,7 +372,10 @@ async function deleteRoom(code) {
   }
 }
 
-async function saveRoom(room) {
+async function saveRoom(room, options = {}) {
+  const { activity = true } = options;
+  if (activity) room.lastActivityAt = Date.now();
+  room.updatedAt = Date.now();
   localStorage.setItem(roomKey(room.code), JSON.stringify(room));
   app.room = room;
 
@@ -401,13 +404,14 @@ async function saveRoom(room) {
 }
 
 function createRoom(code) {
+  const now = Date.now();
   return {
     code,
     status: "live",
     ownerId: app.profile.role === "teacher" ? app.profile.id : "",
     ownerName: app.profile.role === "teacher" ? app.profile.name : "",
     roundId: crypto.randomUUID(),
-    roundStartedAt: Date.now(),
+    roundStartedAt: now,
     currentIndex: 0,
     participants: {},
     removedParticipantIds: [],
@@ -416,7 +420,9 @@ function createRoom(code) {
     nextVotes: {},
     audienceVotes: {},
     events: [],
-    createdAt: Date.now()
+    createdAt: now,
+    lastActivityAt: now,
+    updatedAt: now
   };
 }
 
@@ -759,7 +765,7 @@ async function sendPresenceHeartbeat() {
   const room = await loadRoom(app.room.code);
   if (!room?.participants?.[app.profile.id]) return;
   upsertParticipant(room);
-  await saveRoom(room);
+  await saveRoom(room, { activity: false });
 }
 
 function renderEmpty(target) {
@@ -955,10 +961,10 @@ function currentScoreboardKey(room = app.room) {
 }
 
 function rankAward(rank) {
-  if (rank === 1) return { symbol: "👑", label: "Coroa de ouro", className: "gold" };
-  if (rank === 2) return { symbol: "👑", label: "Coroa de prata", className: "silver" };
-  if (rank === 3) return { symbol: "👑", label: "Coroa de bronze", className: "bronze" };
-  if (rank === 4) return { symbol: "🏅", label: "Medalha", className: "medal-fourth" };
+  if (rank === 1) return { symbol: "👑", label: "Coroa de ouro", className: "gold", image: "./image-gen-1(1).png" };
+  if (rank === 2) return { symbol: "👑", label: "Coroa de prata", className: "silver", image: "./Medalha%20de%20Prata%20com%20Capivara%20Cantora.png" };
+  if (rank === 3) return { symbol: "👑", label: "Coroa de bronze", className: "bronze", image: "./Medalha%20de%20bronze%20com%20capivara%20coroada.png" };
+  if (rank === 4) return { symbol: "🏅", label: "Medalha", className: "medal-fourth", image: "./image-gen-1(4).png" };
   return { symbol: "★", label: "Participante", className: "honor" };
 }
 
@@ -980,7 +986,14 @@ function createRankingItem(student, index, options = {}) {
   imageWrap.className = "rank-photo";
   awardBadge.className = `rank-award ${award.className}`;
   awardBadge.title = award.label;
-  awardBadge.textContent = award.symbol;
+  if (award.image) {
+    const awardImage = document.createElement("img");
+    awardImage.src = award.image;
+    awardImage.alt = award.label;
+    awardBadge.append(awardImage);
+  } else {
+    awardBadge.textContent = award.symbol;
+  }
   image.src = avatarFor(student);
   image.alt = "";
   name.textContent = student.name;
@@ -1212,7 +1225,7 @@ function render() {
   }
 }
 
-function resizeProfilePhoto(file, maxSize = 420) {
+function resizeProfilePhoto(file, maxSize = 320) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
@@ -1220,16 +1233,23 @@ function resizeProfilePhoto(file, maxSize = 420) {
       const image = new Image();
       image.onerror = reject;
       image.onload = () => {
-        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
-        const width = Math.max(1, Math.round(image.width * scale));
-        const height = Math.max(1, Math.round(image.height * scale));
+        if (image.width < 80 || image.height < 80) {
+          reject(new Error("Imagem pequena demais"));
+          return;
+        }
+
+        const sourceSize = Math.min(image.width, image.height);
+        const sourceX = Math.round((image.width - sourceSize) / 2);
+        const sourceY = Math.round((image.height - sourceSize) / 2);
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(image, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.82));
+        canvas.width = maxSize;
+        canvas.height = maxSize;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, maxSize, maxSize);
+        ctx.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, maxSize, maxSize);
+        resolve(canvas.toDataURL("image/jpeg", 0.84));
       };
       image.src = reader.result;
     };
