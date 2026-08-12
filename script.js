@@ -106,6 +106,28 @@ const SOUND_FILES = {
   voteGreat: "./driken5482-applause-cheer-236786.mp3"
 };
 
+const STAGE_EFFECT_FILES = [
+  "./efeitos%20sonoros/99-efeito.mp3",
+  "./efeitos%20sonoros/ai-gostei-rodrigo-faro.mp3",
+  "./efeitos%20sonoros/aiaiai-rodrigo-faro.mp3",
+  "./efeitos%20sonoros/aii-mamae.mp3",
+  "./efeitos%20sonoros/danca-gatinho-danca-hora-do-faro.mp3",
+  "./efeitos%20sonoros/demaals.mp3",
+  "./efeitos%20sonoros/e-brincadeira-hein-rodrigo-faro.mp3",
+  "./efeitos%20sonoros/efeito-balancando.mp3",
+  "./efeitos%20sonoros/efeito-ring.mp3",
+  "./efeitos%20sonoros/ele-g0sta.mp3",
+  "./efeitos%20sonoros/m-efeito-sonoro-cutuco-correndo.mp3",
+  "./efeitos%20sonoros/olha-la-rodrigo-faro.mp3",
+  "./efeitos%20sonoros/quack-efeito-sonoro.mp3",
+  "./efeitos%20sonoros/que-cara-mais-sem-graca-rodrigo-faro.mp3",
+  "./efeitos%20sonoros/que-papelao-hein-efeito-sonoro.mp3",
+  "./efeitos%20sonoros/saitama-voce-apareceu-mesmo-pt-br.mp3",
+  "./efeitos%20sonoros/uou-efeito-sonoro.mp3",
+  "./efeitos%20sonoros/zoeira-efeito-brinquedo-de-borracha.mp3",
+  "./efeitos%20sonoros/zoeira-efeito-roblox-morre.mp3"
+];
+
 let scannerStream = null;
 let scannerTimer = null;
 const USE_REMOTE_STORAGE = location.protocol.startsWith("http");
@@ -121,6 +143,8 @@ let scoreboardDomKey = "";
 let noticeTimer = null;
 let activeMediaAudio = null;
 let activeMediaTimers = [];
+let lastStageEffectIndex = -1;
+let lastStagePerformerId = null;
 
 function cleanText(value = "", maxLength = 80) {
   return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
@@ -348,9 +372,20 @@ function playActionSound() {
 }
 
 function playAdvanceSound() {
-  playTone(392, 0, 0.08, "square", 0.05);
-  playTone(523, 0.08, 0.08, "square", 0.05);
-  playTone(784, 0.16, 0.16, "triangle", 0.08);
+  if (!STAGE_EFFECT_FILES.length) {
+    playTone(392, 0, 0.08, "square", 0.05);
+    playTone(523, 0.08, 0.08, "square", 0.05);
+    playTone(784, 0.16, 0.16, "triangle", 0.08);
+    return;
+  }
+
+  let index = Math.floor(Math.random() * STAGE_EFFECT_FILES.length);
+  if (STAGE_EFFECT_FILES.length > 1 && index === lastStageEffectIndex) {
+    index = (index + 1) % STAGE_EFFECT_FILES.length;
+  }
+
+  lastStageEffectIndex = index;
+  playAudioFile(STAGE_EFFECT_FILES[index], 0.82);
 }
 
 function playFinishSound() {
@@ -402,6 +437,29 @@ function playAudienceVoteSound(vote) {
   if (vote === "bad") playBadVoteSound();
   if (vote === "good") playGoodVoteSound();
   if (vote === "great") playGreatVoteSound();
+}
+
+function animatePerformerEntrance() {
+  const board = $(".photo-board");
+  const stage = $(".stage-screen");
+  if (!board || !stage) return;
+
+  stage.scrollIntoView({ behavior: "smooth", block: "start" });
+  board.classList.remove("is-entering");
+  void board.offsetWidth;
+  board.classList.add("is-entering");
+  window.setTimeout(() => board.classList.remove("is-entering"), 1350);
+}
+
+function announcePerformerChange(performer) {
+  const performerId = (performer && performer.id) || "";
+  const hasSeenStage = lastStagePerformerId !== null;
+  const changed = hasSeenStage && performerId && performerId !== lastStagePerformerId;
+  lastStagePerformerId = performerId;
+
+  if (!changed || !app.room || app.room.status === "finished") return;
+  playAdvanceSound();
+  animatePerformerEntrance();
 }
 
 function syncParticipantJoinSounds(room, playSound = true) {
@@ -1386,6 +1444,7 @@ function renderStage() {
   $("#performerName").textContent = (performer && performer.name) || "Aguardando aluno";
   $("#performerPhoto").src = performer ? avatarFor(performer) : defaultAvatar("student");
   $("#teacherCurrentStudent").textContent = performer ? `Apresentando: ${performer.name}` : "Apresentando: aguardando aluno";
+  announcePerformerChange(performer);
 
   const live = app.room.status !== "finished";
   $("#teacherPanel").classList.toggle("is-active", app.profile.role === "teacher" && live);
@@ -1719,7 +1778,6 @@ $("#nextStudent").addEventListener("click", async () => {
 
   const nextStatus = teacherNextStatus(livePerformer.id, room);
   if (nextStatus.complete) {
-    playAdvanceSound();
     await advanceRoom(room);
   } else {
     playActionSound();

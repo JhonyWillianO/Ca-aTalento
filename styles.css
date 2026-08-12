@@ -200,6 +200,37 @@ body[data-screen="welcome"] .game-header {
   }
 }
 
+@keyframes stageEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.92) rotate(-1.5deg);
+    filter: saturate(1.35) brightness(1.14);
+  }
+
+  45% {
+    opacity: 1;
+    transform: translateY(8px) scale(1.04) rotate(1deg);
+    filter: saturate(1.35) brightness(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+    filter: none;
+  }
+}
+
+@keyframes stageSpotlight {
+  0%,
+  100% {
+    box-shadow: 0 5px 0 rgba(3, 28, 79, 0.25);
+  }
+
+  45% {
+    box-shadow: 0 8px 0 rgba(3, 28, 79, 0.2), 0 0 0 8px rgba(220, 174, 49, 0.18), 0 28px 80px rgba(220, 174, 49, 0.42);
+  }
+}
+
 @keyframes selectedBounce {
   0%,
   100% {
@@ -955,6 +986,15 @@ h2 {
   object-fit: cover;
   background: #eef7ff;
   animation: photoFloat 4.8s ease-in-out infinite;
+}
+
+.photo-board.is-entering {
+  animation: stageSpotlight 1.25s ease-out both;
+}
+
+.photo-board.is-entering img,
+.photo-board.is-entering strong {
+  animation: stageEntrance 1.05s ease-out both;
 }
 
 .photo-board strong {
