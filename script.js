@@ -1,8 +1,36 @@
-const savedProfile = JSON.parse(localStorage.getItem("talent-profile") || "{}");
+function readSavedProfile() {
+  try {
+    return JSON.parse(localStorage.getItem("talent-profile") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function makeId() {
+  const safeCrypto = globalThis.crypto;
+  if (safeCrypto?.randomUUID) return safeCrypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  safeCrypto?.getRandomValues?.(bytes);
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("") || `${Date.now()}-${Math.random()}`;
+}
+
+function createSyncChannel() {
+  if (!("BroadcastChannel" in window)) {
+    return { postMessage() {}, addEventListener() {} };
+  }
+
+  try {
+    return new BroadcastChannel("talent-room-sync");
+  } catch {
+    return { postMessage() {}, addEventListener() {} };
+  }
+}
+
+const savedProfile = readSavedProfile();
 
 const app = {
   profile: {
-    id: savedProfile.id || crypto.randomUUID(),
+    id: savedProfile.id || makeId(),
     name: savedProfile.name || "",
     photo: savedProfile.photo || "",
     role: savedProfile.role || "student",
@@ -10,7 +38,7 @@ const app = {
   },
   room: null,
   selectedRoom: "",
-  channel: new BroadcastChannel("talent-room-sync")
+  channel: createSyncChannel()
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -311,13 +339,26 @@ function roomKey(code) {
 
 function getLocalRoom(code) {
   const saved = localStorage.getItem(roomKey(code));
-  return saved ? JSON.parse(saved) : null;
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved);
+  } catch {
+    localStorage.removeItem(roomKey(code));
+    return null;
+  }
 }
 
 function localRooms() {
   return Object.keys(localStorage)
     .filter((key) => key.startsWith("talent-room-"))
-    .map((key) => JSON.parse(localStorage.getItem(key)))
+    .map((key) => {
+      try {
+        return JSON.parse(localStorage.getItem(key));
+      } catch {
+        localStorage.removeItem(key);
+        return null;
+      }
+    })
     .filter(Boolean)
     .sort((a, b) => b.createdAt - a.createdAt);
 }
@@ -410,7 +451,7 @@ function createRoom(code) {
     status: "live",
     ownerId: app.profile.role === "teacher" ? app.profile.id : "",
     ownerName: app.profile.role === "teacher" ? app.profile.name : "",
-    roundId: crypto.randomUUID(),
+    roundId: makeId(),
     roundStartedAt: now,
     currentIndex: 0,
     participants: {},
@@ -456,7 +497,7 @@ function syncRoleButtons() {
 
 function addEvent(room, text) {
   room.events ||= [];
-  room.events.unshift({ id: crypto.randomUUID(), type: "system", text, at: Date.now() });
+  room.events.unshift({ id: makeId(), type: "system", text, at: Date.now() });
   room.events = room.events.slice(0, 60);
 }
 
@@ -466,7 +507,7 @@ function addChatMessage(room, text) {
 
   room.events ||= [];
   room.events.unshift({
-    id: crypto.randomUUID(),
+    id: makeId(),
     type: "chat",
     text: safeText,
     author: app.profile.name,
@@ -567,7 +608,7 @@ function isRoomOwner(room = app.room) {
 
 function resetRoomForNewRound(room) {
   room.status = "live";
-  room.roundId = crypto.randomUUID();
+  room.roundId = makeId();
   room.roundStartedAt = Date.now();
   room.currentIndex = 0;
   room.scores = {};
@@ -1382,7 +1423,13 @@ $$("[data-public-vote]").forEach((button) => {
 });
 
 $("#copyCode").addEventListener("click", async () => {
-  await navigator.clipboard.writeText(app.room.code);
+  try {
+    await navigator.clipboard.writeText(app.room.code);
+  } catch {
+    $("#roomInput").value = app.room.code;
+    $("#roomInput").select();
+    document.execCommand?.("copy");
+  }
   playActionSound();
   $("#copyCode").textContent = "copiado";
   setTimeout(() => ($("#copyCode").textContent = "copiar"), 900);
@@ -1598,6 +1645,41 @@ function hydrateFromUrl() {
   return Boolean(room);
 }
 
+async function restoreSavedSession() {
+  const savedCode = normalizeCode(app.profile.roomCode || "");
+  if (!savedCode || app.room) return false;
+
+  const room = await loadRoom(savedCode);
+  if (!room) {
+    app.profile.roomCode = "";
+    saveProfile();
+    showNotice("A sala anterior nao existe mais. Entre com um novo codigo.", "Sessao encerrada", "warning");
+    return false;
+  }
+
+  const wasParticipant = Boolean(room.participants?.[app.profile.id]);
+  if (!wasParticipant && room.removedParticipantIds?.includes(app.profile.id)) {
+    app.profile.roomCode = "";
+    saveProfile();
+    showNotice("Voce foi removido dessa sala pelo professor organizador.", "Participante removido", "danger");
+    return false;
+  }
+
+  upsertParticipant(room);
+  if (app.profile.role === "student" && !room.queue.includes(app.profile.id)) {
+    room.queue.push(app.profile.id);
+  }
+
+  app.selectedRoom = savedCode;
+  $("#roomInput").value = savedCode;
+  $("#selectedRoomLabel").textContent = savedCode;
+  await saveRoom(room, { activity: !wasParticipant });
+  syncParticipantJoinSounds(app.room, false);
+  render();
+  showScreen(app.room.status === "finished" ? "scoreboard" : "stage");
+  return true;
+}
+
 const shouldAutoJoinRoom = hydrateFromUrl();
 updateHeader();
 syncRoleButtons();
@@ -1613,4 +1695,6 @@ window.setInterval(sendPresenceHeartbeat, 45000);
 
 if (shouldAutoJoinRoom) {
   window.setTimeout(() => joinRoom(app.selectedRoom, false), 150);
+} else {
+  window.setTimeout(restoreSavedSession, 150);
 }
