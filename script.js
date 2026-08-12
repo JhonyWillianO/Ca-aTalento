@@ -7,10 +7,10 @@ function readSavedProfile() {
 }
 
 function makeId() {
-  const safeCrypto = globalThis.crypto;
-  if (safeCrypto?.randomUUID) return safeCrypto.randomUUID();
+  const safeCrypto = window.crypto || window.msCrypto;
+  if (safeCrypto && safeCrypto.randomUUID) return safeCrypto.randomUUID();
   const bytes = new Uint8Array(16);
-  safeCrypto?.getRandomValues?.(bytes);
+  if (safeCrypto && safeCrypto.getRandomValues) safeCrypto.getRandomValues(bytes);
   return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("") || `${Date.now()}-${Math.random()}`;
 }
 
@@ -82,7 +82,10 @@ let scoreboardRevealKey = "";
 let scoreboardRevealComplete = false;
 let scoreboardRevealTimers = [];
 let scoreboardRevealedRanks = new Set();
+let scoreboardDomKey = "";
 let noticeTimer = null;
+let activeMediaAudio = null;
+let activeMediaTimers = [];
 
 function cleanText(value = "", maxLength = 80) {
   return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
@@ -162,15 +165,30 @@ function askConfirm(message, title = "Confirmar") {
 function ensureAudio() {
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtor) return null;
-  audioContext ||= new AudioCtor();
+  if (!audioContext) audioContext = new AudioCtor();
   if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
   return audioContext;
 }
 
+function stopMediaAudio() {
+  activeMediaTimers.forEach((timer) => window.clearTimeout(timer));
+  activeMediaTimers = [];
+
+  if (!activeMediaAudio) return;
+  activeMediaAudio.pause();
+  activeMediaAudio.currentTime = 0;
+  activeMediaAudio = null;
+}
+
 function playAudioFile(src, volume = 0.82) {
   ensureAudio();
+  stopMediaAudio();
   const audio = new Audio(src);
   audio.volume = volume;
+  activeMediaAudio = audio;
+  audio.addEventListener("ended", () => {
+    if (activeMediaAudio === audio) activeMediaAudio = null;
+  });
   audio.play().catch(() => {});
   return audio;
 }
@@ -246,11 +264,10 @@ function playFinishSound() {
 
 function playFinalResultSound(ranking) {
   const winner = ranking[0];
-  const shouldCelebrate = app.profile.role === "teacher" || app.profile.role === "viewer" || app.profile.id === winner?.id;
+  const shouldCelebrate = app.profile.role === "teacher" || app.profile.role === "viewer" || app.profile.id === (winner && winner.id);
 
   if (shouldCelebrate) {
-    playAudioFile(SOUND_FILES.fanfare, 0.72);
-    window.setTimeout(() => playAudioFile(SOUND_FILES.victory, 0.86), 620);
+    playAudioFile(SOUND_FILES.victory, 0.86);
   } else {
     playAudioFile(SOUND_FILES.defeat, 0.84);
   }
@@ -291,7 +308,7 @@ function playAudienceVoteSound(vote) {
 }
 
 function syncParticipantJoinSounds(room, playSound = true) {
-  const ids = new Set(Object.keys(room?.participants || {}));
+  const ids = new Set(Object.keys((room && room.participants) || {}));
   const hasNewRemotePerson = [...ids].some((id) => !knownParticipantIds.has(id) && id !== app.profile.id);
 
   if (playSound && knownParticipantIds.size > 0 && hasNewRemotePerson) playJoinSound();
@@ -330,7 +347,7 @@ function defaultAvatar(role) {
 }
 
 function avatarFor(person) {
-  return person?.photo || defaultAvatar(person?.role || "student");
+  return (person && person.photo) || defaultAvatar((person && person.role) || "student");
 }
 
 function roomKey(code) {
@@ -496,7 +513,7 @@ function syncRoleButtons() {
 }
 
 function addEvent(room, text) {
-  room.events ||= [];
+  room.events = room.events || [];
   room.events.unshift({ id: makeId(), type: "system", text, at: Date.now() });
   room.events = room.events.slice(0, 60);
 }
@@ -505,7 +522,7 @@ function addChatMessage(room, text) {
   const safeText = cleanText(text, 180);
   if (!safeText) return;
 
-  room.events ||= [];
+  room.events = room.events || [];
   room.events.unshift({
     id: makeId(),
     type: "chat",
@@ -525,7 +542,7 @@ function upsertParticipant(room) {
     name: cleanText(app.profile.name, 32),
     photo: String(app.profile.photo || "").length > 260000 ? "" : app.profile.photo,
     role: app.profile.role,
-    joinedAt: previous?.joinedAt || Date.now(),
+    joinedAt: (previous && previous.joinedAt) || Date.now(),
     lastSeenAt: Date.now()
   };
 
@@ -589,17 +606,17 @@ function currentStudent(room = app.room) {
 }
 
 function teachers(room = app.room) {
-  return Object.values(room?.participants || {}).filter((person) => person.role === "teacher");
+  return Object.values((room && room.participants) || {}).filter((person) => person.role === "teacher");
 }
 
 function students(room = app.room) {
-  return (room?.queue || []).map((id) => room.participants[id]).filter(Boolean);
+  return ((room && room.queue) || []).map((id) => room.participants[id]).filter(Boolean);
 }
 
 function roomOwnerId(room = app.room) {
-  if (room?.ownerId) return room.ownerId;
+  if (room && room.ownerId) return room.ownerId;
   const firstTeacher = teachers(room).sort((a, b) => a.joinedAt - b.joinedAt)[0];
-  return firstTeacher?.id || "";
+  return (firstTeacher && firstTeacher.id) || "";
 }
 
 function isRoomOwner(room = app.room) {
@@ -623,12 +640,12 @@ function resetRoomForNewRound(room) {
 }
 
 function studentScores(studentId, room = app.room) {
-  return Object.values(room?.scores?.[studentId] || {});
+  return Object.values(((room && room.scores && room.scores[studentId]) || {}));
 }
 
 function scoreTotal(score) {
   if (typeof score === "number") return score * CRITERIA.length;
-  return CRITERIA.reduce((sum, criterion) => sum + Number(score?.[criterion.key] || 0), 0);
+  return CRITERIA.reduce((sum, criterion) => sum + Number((score && score[criterion.key]) || 0), 0);
 }
 
 function criterionAverage(studentId, criterionKey, room = app.room) {
@@ -637,7 +654,7 @@ function criterionAverage(studentId, criterionKey, room = app.room) {
 
   const total = values.reduce((sum, score) => {
     if (typeof score === "number") return sum + Number(score);
-    return sum + Number(score?.[criterionKey] || 0);
+    return sum + Number((score && score[criterionKey]) || 0);
   }, 0);
 
   return total / values.length;
@@ -668,20 +685,20 @@ function finalRanking(room = app.room) {
 }
 
 function audienceVotesFor(studentId, room = app.room) {
-  return Object.values(room?.audienceVotes?.[studentId] || {});
+  return Object.values(((room && room.audienceVotes && room.audienceVotes[studentId]) || {}));
 }
 
 function audienceApproval(studentId, room = app.room) {
   const votes = audienceVotesFor(studentId, room);
   if (!votes.length) return { percent: 0, count: 0, label: "Sem votos do publico" };
 
-  const total = votes.reduce((sum, vote) => sum + (PUBLIC_VOTES[vote]?.value || 0), 0);
+  const total = votes.reduce((sum, vote) => sum + ((PUBLIC_VOTES[vote] && PUBLIC_VOTES[vote].value) || 0), 0);
   const percent = Math.round(total / votes.length);
   return { percent, count: votes.length, label: `${percent}% aprovacao do publico` };
 }
 
 function viewerVotedStudent(studentId, viewerId = app.profile.id, room = app.room) {
-  return room?.audienceVotes?.[studentId]?.[viewerId] !== undefined;
+  return Boolean(room && room.audienceVotes && room.audienceVotes[studentId] && room.audienceVotes[studentId][viewerId] !== undefined);
 }
 
 function currentCriteriaScore() {
@@ -703,17 +720,17 @@ function updateScoreTotal() {
 
 function teacherVoteStatus(studentId, room = app.room) {
   const teacherList = teachers(room);
-  const votedCount = teacherList.filter((teacher) => room?.scores?.[studentId]?.[teacher.id] !== undefined).length;
+  const votedCount = teacherList.filter((teacher) => room && room.scores && room.scores[studentId] && room.scores[studentId][teacher.id] !== undefined).length;
   return { votedCount, total: teacherList.length, complete: teacherList.length > 0 && votedCount === teacherList.length };
 }
 
 function teacherScoredStudent(studentId, teacherId = app.profile.id, room = app.room) {
-  return room?.scores?.[studentId]?.[teacherId] !== undefined;
+  return Boolean(room && room.scores && room.scores[studentId] && room.scores[studentId][teacherId] !== undefined);
 }
 
 function teacherNextStatus(studentId, room = app.room) {
   const teacherList = teachers(room);
-  const confirmedCount = teacherList.filter((teacher) => room?.nextVotes?.[studentId]?.[teacher.id]).length;
+  const confirmedCount = teacherList.filter((teacher) => room && room.nextVotes && room.nextVotes[studentId] && room.nextVotes[studentId][teacher.id]).length;
   return {
     confirmedCount,
     total: teacherList.length,
@@ -722,7 +739,7 @@ function teacherNextStatus(studentId, room = app.room) {
 }
 
 function teacherConfirmedNext(studentId, teacherId = app.profile.id, room = app.room) {
-  return Boolean(room?.nextVotes?.[studentId]?.[teacherId]);
+  return Boolean(room && room.nextVotes && room.nextVotes[studentId] && room.nextVotes[studentId][teacherId]);
 }
 
 function isLastStudent(room = app.room) {
@@ -730,10 +747,10 @@ function isLastStudent(room = app.room) {
 }
 
 function removeParticipantFromRoom(room, participantId) {
-  const participant = room.participants?.[participantId];
+  const participant = room.participants && room.participants[participantId];
   if (!participant || participantId === roomOwnerId(room)) return false;
 
-  room.removedParticipantIds ||= [];
+  room.removedParticipantIds = room.removedParticipantIds || [];
   if (!room.removedParticipantIds.includes(participantId)) {
     room.removedParticipantIds.push(participantId);
   }
@@ -744,9 +761,9 @@ function removeParticipantFromRoom(room, participantId) {
     room.currentIndex = Math.max(0, room.queue.length - 1);
   }
 
-  delete room.scores?.[participantId];
-  delete room.audienceVotes?.[participantId];
-  delete room.nextVotes?.[participantId];
+  if (room.scores) delete room.scores[participantId];
+  if (room.audienceVotes) delete room.audienceVotes[participantId];
+  if (room.nextVotes) delete room.nextVotes[participantId];
 
   Object.values(room.scores || {}).forEach((scoreByTeacher) => delete scoreByTeacher[participantId]);
   Object.values(room.audienceVotes || {}).forEach((voteByViewer) => delete voteByViewer[participantId]);
@@ -761,7 +778,7 @@ async function advanceRoom(room) {
   if (room.currentIndex < room.queue.length - 1) {
     room.currentIndex += 1;
     const next = currentStudent(room);
-    addEvent(room, `${next?.name || "Proximo aluno"} subiu ao palco.`);
+    addEvent(room, `${(next && next.name) || "Proximo aluno"} subiu ao palco.`);
   } else {
     room.status = "finished";
     addEvent(room, "Show finalizado. Placar liberado.");
@@ -770,7 +787,7 @@ async function advanceRoom(room) {
 }
 
 async function syncActiveRoom() {
-  if (!USE_REMOTE_STORAGE || !app.room?.code) return;
+  if (!USE_REMOTE_STORAGE || !app.room || !app.room.code) return;
 
   const latest = await loadRoom(app.room.code);
   if (!latest) {
@@ -801,10 +818,10 @@ async function syncActiveRoom() {
 }
 
 async function sendPresenceHeartbeat() {
-  if (!USE_REMOTE_STORAGE || !app.room?.code || !app.room.participants?.[app.profile.id]) return;
+  if (!USE_REMOTE_STORAGE || !app.room || !app.room.code || !app.room.participants || !app.room.participants[app.profile.id]) return;
 
   const room = await loadRoom(app.room.code);
-  if (!room?.participants?.[app.profile.id]) return;
+  if (!room || !room.participants || !room.participants[app.profile.id]) return;
   upsertParticipant(room);
   await saveRoom(room, { activity: false });
 }
@@ -864,7 +881,7 @@ async function renderRooms() {
   rooms.forEach((room) => {
     const card = document.createElement("button");
     const peopleCount = Object.keys(room.participants || {}).length;
-    const studentCount = room.queue?.length || 0;
+    const studentCount = (room.queue && room.queue.length) || 0;
     card.className = `room-card ${app.selectedRoom === room.code ? "is-selected" : ""}`;
     card.type = "button";
     card.innerHTML = `
@@ -931,7 +948,7 @@ function renderTeachers() {
 
   people.forEach((teacher) => {
     const performer = currentStudent();
-    const gaveScore = performer && app.room.scores[performer.id]?.[teacher.id] !== undefined;
+    const gaveScore = performer && app.room.scores[performer.id] && app.room.scores[performer.id][teacher.id] !== undefined;
     list.append(personLine(teacher, gaveScore ? "nota enviada" : "aguardando nota", {
       removable: canRemoveParticipant(teacher)
     }));
@@ -941,7 +958,7 @@ function renderTeachers() {
 function renderGuests() {
   const list = $("#guestList");
   list.innerHTML = "";
-  const guests = Object.values(app.room?.participants || {})
+  const guests = Object.values((app.room && app.room.participants) || {})
     .filter((person) => person.role === "viewer")
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -955,7 +972,7 @@ function renderGuests() {
 function renderScores() {
   const list = $("#scoreList");
   list.innerHTML = "";
-  const events = app.room?.events || [];
+  const events = (app.room && app.room.events) || [];
 
   if (!events.length) {
     renderEmpty(list);
@@ -995,10 +1012,11 @@ function stopScoreboardReveal() {
   scoreboardRevealKey = currentScoreboardKey();
   scoreboardRevealComplete = false;
   scoreboardRevealedRanks = new Set();
+  scoreboardDomKey = "";
 }
 
 function currentScoreboardKey(room = app.room) {
-  return `${room?.code || "local"}-${room?.roundId || "round"}-${room?.status || "live"}`;
+  return `${(room && room.code) || "local"}-${(room && room.roundId) || "round"}-${(room && room.status) || "live"}`;
 }
 
 function rankAward(rank) {
@@ -1067,7 +1085,7 @@ function revealScoreboardItems(items, ranking, key) {
           scoreboardRevealComplete = true;
           playFinalResultSound(ranking);
           renderScoreboard();
-        }, 1450);
+        }, 2600);
         scoreboardRevealTimers.push(finalTimer);
       } else {
         playActionSound();
@@ -1103,6 +1121,15 @@ function renderScoreboard() {
   const podium = $("#podium");
   const revealKey = currentScoreboardKey();
   const isNewReveal = scoreboardRevealKey !== revealKey;
+
+  if (!isNewReveal && scoreboardRevealComplete && scoreboardDomKey === revealKey && podium.children.length) {
+    const owner = isRoomOwner();
+    $("#finishActions").style.display = owner ? "grid" : "none";
+    $("#waitingHost").textContent = "Aguardando o professor organizador iniciar outra rodada.";
+    $("#waitingHost").classList.toggle("is-active", !owner);
+    return;
+  }
+
   podium.innerHTML = "";
 
   const ranking = finalRanking();
@@ -1121,11 +1148,15 @@ function renderScoreboard() {
     const revealOrder = topFour.map((student, index) => ({ student, index })).reverse();
     const revealItems = [];
 
-    revealOrder.forEach(({ student, index }) => {
+    topFour.forEach((student, index) => {
       const rank = index + 1;
       const shouldHide = !scoreboardRevealComplete && !scoreboardRevealedRanks.has(rank);
       const item = createRankingItem(student, index, { hidden: shouldHide });
       podium.append(item);
+    });
+
+    revealOrder.forEach(({ index }) => {
+      const rank = index + 1;
       revealItems.push({ rank });
     });
 
@@ -1138,6 +1169,7 @@ function renderScoreboard() {
   $("#waitingHost").textContent = "Aguardando o professor organizador iniciar outra rodada.";
   $("#waitingHost").classList.toggle("is-active", !owner);
   renderPublicSummary();
+  if (scoreboardRevealComplete) scoreboardDomKey = revealKey;
 }
 
 function renderPublicSummary() {
@@ -1171,7 +1203,7 @@ function renderStage() {
   $("#currentCode").textContent = app.room.code;
   $("#inviteCode").textContent = app.room.code;
   $("#stageTitle").textContent = app.room.status === "finished" ? "ENCERRADO" : "PALCO";
-  $("#performerName").textContent = performer?.name || "Aguardando aluno";
+  $("#performerName").textContent = (performer && performer.name) || "Aguardando aluno";
   $("#performerPhoto").src = performer ? avatarFor(performer) : defaultAvatar("student");
 
   const live = app.room.status !== "finished";
@@ -1183,7 +1215,7 @@ function renderStage() {
   if (app.profile.role === "teacher" && live) renderQrCode(app.room.code);
 
   const isInQueue = app.room.queue.includes(app.profile.id);
-  const isCurrent = performer?.id === app.profile.id;
+  const isCurrent = performer && performer.id === app.profile.id;
   $("#joinQueue").disabled = isInQueue;
   $("#joinQueue").textContent = isInQueue ? "NA FILA" : "ENTRAR NA FILA";
   $("#studentMessage").textContent = isCurrent
@@ -1355,7 +1387,7 @@ $("#joinRoom").addEventListener("click", async () => {
 
 $("#chatForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!app.room?.code) return;
+  if (!app.room || !app.room.code) return;
 
   const input = $("#chatInput");
   const text = input.value.trim();
@@ -1382,7 +1414,7 @@ document.addEventListener("click", async (event) => {
   }
 
   const participantId = button.dataset.removeParticipant;
-  const participant = room.participants?.[participantId];
+  const participant = room.participants && room.participants[participantId];
   if (!participant) return;
 
   const confirmed = await askConfirm(`Remover ${participant.name} da sala?`, "Remover participante");
@@ -1402,8 +1434,8 @@ $$("[data-public-vote]").forEach((button) => {
 
     const room = await loadRoom(app.room.code);
     if (!room) return;
-    room.audienceVotes ||= {};
-    room.audienceVotes[performer.id] ||= {};
+    room.audienceVotes = room.audienceVotes || {};
+    room.audienceVotes[performer.id] = room.audienceVotes[performer.id] || {};
 
     if (viewerVotedStudent(performer.id, app.profile.id, room)) {
       showNotice("Seu voto para este aluno ja foi registrado.", "Voto duplicado", "warning");
@@ -1428,7 +1460,7 @@ $("#copyCode").addEventListener("click", async () => {
   } catch {
     $("#roomInput").value = app.room.code;
     $("#roomInput").select();
-    document.execCommand?.("copy");
+    if (document.execCommand) document.execCommand("copy");
   }
   playActionSound();
   $("#copyCode").textContent = "copiado";
@@ -1448,7 +1480,7 @@ $("#sendScore").addEventListener("click", async () => {
 
   const room = await loadRoom(app.room.code);
   if (!room) return;
-  room.scores[performer.id] ||= {};
+  room.scores[performer.id] = room.scores[performer.id] || {};
   if (teacherScoredStudent(performer.id, app.profile.id, room)) {
     showNotice("Voce ja deu nota para este aluno nesta rodada.", "Nota ja enviada", "warning");
     app.room = room;
@@ -1482,8 +1514,8 @@ $("#nextStudent").addEventListener("click", async () => {
     return;
   }
 
-  room.nextVotes ||= {};
-  room.nextVotes[livePerformer.id] ||= {};
+  room.nextVotes = room.nextVotes || {};
+  room.nextVotes[livePerformer.id] = room.nextVotes[livePerformer.id] || {};
   room.nextVotes[livePerformer.id][app.profile.id] = true;
 
   const nextStatus = teacherNextStatus(livePerformer.id, room);
@@ -1513,7 +1545,7 @@ $("#finishRoom").addEventListener("click", async () => {
 
   room.status = "finished";
   addEvent(room, "Professor finalizou o show.");
-  playFinishSound();
+  playActionSound();
   await saveRoom(room);
   renderScoreboard();
   showScreen("scoreboard");
@@ -1533,7 +1565,7 @@ $("#joinQueue").addEventListener("click", async () => {
 });
 
 $("#newCompetition").addEventListener("click", async () => {
-  if (app.room?.code && isRoomOwner(app.room)) {
+  if (app.room && app.room.code && isRoomOwner(app.room)) {
     await deleteRoom(app.room.code);
   }
 
@@ -1556,7 +1588,7 @@ $("#restartCompetition").addEventListener("click", async () => {
 
   resetRoomForNewRound(room);
   upsertParticipant(room);
-  playFinishSound();
+  playActionSound();
   await saveRoom(room);
   renderStage();
   showScreen("stage");
@@ -1657,8 +1689,8 @@ async function restoreSavedSession() {
     return false;
   }
 
-  const wasParticipant = Boolean(room.participants?.[app.profile.id]);
-  if (!wasParticipant && room.removedParticipantIds?.includes(app.profile.id)) {
+  const wasParticipant = Boolean(room.participants && room.participants[app.profile.id]);
+  if (!wasParticipant && room.removedParticipantIds && room.removedParticipantIds.includes(app.profile.id)) {
     app.profile.roomCode = "";
     saveProfile();
     showNotice("Voce foi removido dessa sala pelo professor organizador.", "Participante removido", "danger");

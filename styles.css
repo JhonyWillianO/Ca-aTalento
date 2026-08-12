@@ -1239,12 +1239,14 @@ h2 {
 }
 
 .rank-card.is-hidden {
+  display: none;
   opacity: 0;
   transform: translateY(24px) scale(0.94);
   filter: blur(6px);
 }
 
 .rank-card.is-revealed {
+  display: grid;
   opacity: 1;
   transform: translateY(0) scale(1);
   filter: blur(0);
