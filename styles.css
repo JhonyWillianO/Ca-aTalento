@@ -87,6 +87,9 @@ button:disabled {
 }
 
 .app-logo {
+  width: clamp(86px, 12vw, 128px);
+  height: clamp(70px, 10vw, 110px);
+  background: url("./Projeto%20Ca%C3%A7a%20Talentos_%20Estrela%20do%20Sucesso.png") center / contain no-repeat;
   color: var(--blue-deep);
   font-size: clamp(26px, 4vw, 44px);
   font-weight: 1000;
@@ -97,8 +100,9 @@ button:disabled {
   animation: titleGlow 3.6s ease-in-out infinite;
 }
 
+.app-logo span,
 .app-logo b {
-  display: block;
+  display: none;
   color: var(--yellow);
 }
 
@@ -761,6 +765,17 @@ h2 {
   overflow: auto;
 }
 
+.side-section-title {
+  padding: 12px 16px 8px;
+  color: var(--blue-deep);
+  font-size: 14px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid #d8e0e6;
+  background: #fffdf4;
+}
+
 .side-section {
   padding: 12px 16px 16px;
   border-top: 2px solid #d8e0e6;
@@ -1006,7 +1021,6 @@ h2 {
 
 .participant-line {
   position: relative;
-  animation: floatIn 220ms ease-out both;
 }
 
 .participant-line.has-remove {
@@ -1036,6 +1050,21 @@ h2 {
 .student-panel.is-active,
 .viewer-panel.is-active {
   display: grid;
+}
+
+.current-performer-pill {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 3px solid rgba(220, 174, 49, 0.75);
+  border-radius: 10px;
+  color: var(--blue-deep);
+  background: #fff8dc;
+  font-size: 18px;
+  font-weight: 1000;
+  text-align: center;
+  box-shadow: 0 4px 0 rgba(3, 28, 79, 0.12);
 }
 
 .audience-vote {
@@ -1230,7 +1259,8 @@ h2 {
 }
 
 .dramatic-podium.has-tie-winners {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  max-width: 980px;
 }
 
 .dramatic-podium.has-tie-winners .rank-card:not(.tie-winner) {
@@ -1260,7 +1290,8 @@ h2 {
 .rank-card .meta,
 .public-summary span,
 .public-summary strong {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .rank-card.is-hidden {
@@ -1288,8 +1319,8 @@ h2 {
 }
 
 .rank-card.tie-winner {
-  grid-template-columns: 54px 82px minmax(0, 1fr);
-  min-height: 116px;
+  grid-template-columns: 54px 88px minmax(150px, 1fr);
+  min-height: 126px;
 }
 
 .rank-card.rank-2 {

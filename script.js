@@ -64,6 +64,35 @@ const PUBLIC_VOTES = {
   great: { label: "Maravilhoso", value: 100 }
 };
 
+const BLOCKED_WORDS = [
+  "arrombado",
+  "boquete",
+  "buceta",
+  "cacete",
+  "caralho",
+  "fdp",
+  "foda",
+  "fodase",
+  "gozar",
+  "merda",
+  "nude",
+  "nudes",
+  "pau",
+  "pelada",
+  "pelado",
+  "pinto",
+  "porn",
+  "porno",
+  "porra",
+  "puta",
+  "puto",
+  "rola",
+  "sexo",
+  "vtnc"
+];
+
+const IMAGE_BLOCKED_TERMS = ["18", "adult", "nude", "nudes", "pelada", "pelado", "porn", "porno", "sexo", "xxx"];
+
 const SOUND_FILES = {
   drumRoll: "./scratchonix-drum-roll-for-victory-366448.mp3",
   fanfare: "./u_ss015dykrt-brass-fanfare-with-timpani-and-winchimes-reverberated-146260.mp3",
@@ -92,6 +121,53 @@ let activeMediaTimers = [];
 
 function cleanText(value = "", maxLength = 80) {
   return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function normalizeModerationText(value = "") {
+  return String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[@4]/g, "a")
+    .replace(/[!1|]/g, "i")
+    .replace(/[0]/g, "o")
+    .replace(/[3]/g, "e")
+    .replace(/[5$]/g, "s")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function hasBlockedText(value) {
+  const text = normalizeModerationText(value);
+  if (!text) return false;
+  return BLOCKED_WORDS.some((word) => text.includes(normalizeModerationText(word)));
+}
+
+function hasBlockedImageName(file) {
+  const name = normalizeModerationText((file && file.name) || "");
+  return IMAGE_BLOCKED_TERMS.some((term) => name.includes(normalizeModerationText(term)));
+}
+
+function imageLooksUnsafe(ctx, size) {
+  let sampled = 0;
+  let skinPixels = 0;
+  const step = 8;
+  const pixels = ctx.getImageData(0, 0, size, size).data;
+
+  for (let y = 0; y < size; y += step) {
+    for (let x = 0; x < size; x += step) {
+      const offset = (y * size + x) * 4;
+      const red = pixels[offset];
+      const green = pixels[offset + 1];
+      const blue = pixels[offset + 2];
+      const max = Math.max(red, green, blue);
+      const min = Math.min(red, green, blue);
+      const isSkinLike = red > 95 && green > 40 && blue > 20 && max - min > 15 && red > green && red > blue;
+      sampled += 1;
+      if (isSkinLike) skinPixels += 1;
+    }
+  }
+
+  return sampled > 0 && skinPixels / sampled > 0.62;
 }
 
 function ensureNoticeLayer() {
@@ -488,6 +564,11 @@ function createRoom(code) {
 
 function profileReady() {
   const typedName = cleanText($("#nameInput").value, 32);
+  if (hasBlockedText(typedName)) {
+    showNotice("Escolha um nick respeitoso para participar do projeto.", "Nome bloqueado", "warning");
+    return false;
+  }
+
   app.profile.name = typedName || randomName();
   app.profile.photo = String(app.profile.photo || "").length > 260000 ? "" : app.profile.photo;
   $("#nameInput").value = app.profile.name;
@@ -1032,6 +1113,11 @@ function renderGuests() {
     .filter((person) => person.role === "viewer")
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  if (!guests.length) {
+    renderEmpty(list);
+    return;
+  }
+
   guests.forEach((guest) => {
     list.append(personLine(guest, "convidado", {
       removable: canRemoveParticipant(guest)
@@ -1279,6 +1365,7 @@ function renderStage() {
   $("#stageTitle").textContent = app.room.status === "finished" ? "ENCERRADO" : "PALCO";
   $("#performerName").textContent = (performer && performer.name) || "Aguardando aluno";
   $("#performerPhoto").src = performer ? avatarFor(performer) : defaultAvatar("student");
+  $("#teacherCurrentStudent").textContent = performer ? `Apresentando: ${performer.name}` : "Apresentando: aguardando aluno";
 
   const live = app.room.status !== "finished";
   $("#teacherPanel").classList.toggle("is-active", app.profile.role === "teacher" && live);
@@ -1396,6 +1483,10 @@ function resizeProfilePhoto(file, maxSize = 320) {
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, maxSize, maxSize);
         ctx.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, maxSize, maxSize);
+        if (imageLooksUnsafe(ctx, maxSize)) {
+          reject(new Error("Imagem bloqueada"));
+          return;
+        }
         resolve(canvas.toDataURL("image/jpeg", 0.84));
       };
       image.src = reader.result;
@@ -1413,12 +1504,17 @@ $("#photoInput").addEventListener("change", async (event) => {
   if (!file) return;
 
   try {
+    if (hasBlockedImageName(file)) {
+      throw new Error("Nome de arquivo bloqueado");
+    }
+
     const photo = await resizeProfilePhoto(file);
     app.profile.photo = photo;
     saveProfile();
     $("#profilePhoto").src = photo;
     updateHeader();
   } catch {
+    event.target.value = "";
     showNotice("Nao foi possivel carregar esta foto. Tente outra imagem.", "Foto invalida", "warning");
   }
 });
@@ -1433,7 +1529,7 @@ $$("[data-role]").forEach((button) => {
 });
 
 $("#openRooms").addEventListener("click", () => {
-  profileReady();
+  if (!profileReady()) return;
   showScreen("room");
 });
 
@@ -1470,7 +1566,13 @@ $("#chatForm").addEventListener("submit", async (event) => {
   const text = input.value.trim();
   if (!text) return;
 
-  profileReady();
+  if (hasBlockedText(text)) {
+    input.value = "";
+    showNotice("Mensagem bloqueada por conter palavra impropria.", "Chat protegido", "warning");
+    return;
+  }
+
+  if (!profileReady()) return;
   const room = await loadRoom(app.room.code);
   if (!room) return;
 

@@ -12,6 +12,32 @@ const ROOM_IDLE_MS = 60 * 60 * 1000;
 const PARTICIPANT_STALE_MS = 60 * 60 * 1000;
 const EMPTY_TEACHER_GRACE_MS = 2 * 60 * 1000;
 const VALID_ROLES = new Set(["student", "teacher", "viewer"]);
+const BLOCKED_WORDS = [
+  "arrombado",
+  "boquete",
+  "buceta",
+  "cacete",
+  "caralho",
+  "fdp",
+  "foda",
+  "fodase",
+  "gozar",
+  "merda",
+  "nude",
+  "nudes",
+  "pau",
+  "pelada",
+  "pelado",
+  "pinto",
+  "porn",
+  "porno",
+  "porra",
+  "puta",
+  "puto",
+  "rola",
+  "sexo",
+  "vtnc"
+];
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers });
@@ -29,6 +55,25 @@ function cleanText(value = "", maxLength = 120) {
   return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
+function normalizeModerationText(value = "") {
+  return String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[@4]/g, "a")
+    .replace(/[!1|]/g, "i")
+    .replace(/[0]/g, "o")
+    .replace(/[3]/g, "e")
+    .replace(/[5$]/g, "s")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function hasBlockedText(value) {
+  const text = normalizeModerationText(value);
+  if (!text) return false;
+  return BLOCKED_WORDS.some((word) => text.includes(normalizeModerationText(word)));
+}
+
 function roomKey(code) {
   return `room-${cleanCode(code)}`;
 }
@@ -39,7 +84,7 @@ function sanitizeParticipant(person = {}, fallbackId = "") {
 
   return {
     id,
-    name: cleanText(person.name || "Visitante", 32),
+    name: hasBlockedText(person.name) ? "Visitante" : cleanText(person.name || "Visitante", 32),
     photo: String(person.photo || "").length <= 260000 ? String(person.photo || "") : "",
     role: VALID_ROLES.has(person.role) ? person.role : "student",
     joinedAt: Number(person.joinedAt || Date.now()),
@@ -63,21 +108,26 @@ function sanitizeEvents(events = []) {
     .slice(0, MAX_EVENTS)
     .map((event) => {
       if (typeof event === "string") {
-        return { id: cleanId(`${Date.now()}-${event}`), type: "system", text: cleanText(event, 180), at: Date.now() };
+        const text = cleanText(event, 180);
+        if (hasBlockedText(text)) return null;
+        return { id: cleanId(`${Date.now()}-${event}`), type: "system", text, at: Date.now() };
       }
 
       const type = event?.type === "chat" ? "chat" : "system";
+      const text = cleanText(event?.text, 180);
+      if (hasBlockedText(text)) return null;
+
       return {
         id: cleanId(event?.id || crypto.randomUUID()),
         type,
-        text: cleanText(event?.text, 180),
-        author: cleanText(event?.author, 32),
+        text,
+        author: hasBlockedText(event?.author) ? "Visitante" : cleanText(event?.author, 32),
         role: VALID_ROLES.has(event?.role) ? event.role : "",
         roleLabel: cleanText(event?.roleLabel, 24),
         at: Number(event?.at || Date.now())
       };
     })
-    .filter((event) => event.text);
+    .filter((event) => event && event.text);
 }
 
 function sanitizeNested(values = {}) {
