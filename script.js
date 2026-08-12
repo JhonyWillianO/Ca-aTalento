@@ -503,7 +503,6 @@ function randomName() {
 
 function updateHeader() {
   $("#headerName").textContent = app.profile.name || "Visitante";
-  $("#headerAvatar").src = avatarFor(app.profile);
   $("#profilePhoto").src = avatarFor(app.profile);
   $("#nameInput").value = app.profile.name || "";
 }
@@ -761,14 +760,9 @@ function isLastStudent(room = app.room) {
   return !room || room.queue.length === 0 || room.currentIndex >= room.queue.length - 1;
 }
 
-function removeParticipantFromRoom(room, participantId) {
+function removeParticipantRecords(room, participantId) {
   const participant = room.participants && room.participants[participantId];
-  if (!participant || participantId === roomOwnerId(room)) return false;
-
-  room.removedParticipantIds = room.removedParticipantIds || [];
-  if (!room.removedParticipantIds.includes(participantId)) {
-    room.removedParticipantIds.push(participantId);
-  }
+  if (!participant) return null;
 
   delete room.participants[participantId];
   room.queue = (room.queue || []).filter((id) => id !== participantId);
@@ -784,8 +778,69 @@ function removeParticipantFromRoom(room, participantId) {
   Object.values(room.audienceVotes || {}).forEach((voteByViewer) => delete voteByViewer[participantId]);
   Object.values(room.nextVotes || {}).forEach((nextByTeacher) => delete nextByTeacher[participantId]);
 
+  return participant;
+}
+
+function transferRoomOwnerIfNeeded(room, leavingId) {
+  if (roomOwnerId(room) !== leavingId) return;
+
+  const nextTeacher = teachers(room)
+    .filter((teacher) => teacher.id !== leavingId)
+    .sort((a, b) => a.joinedAt - b.joinedAt)[0];
+
+  room.ownerId = nextTeacher ? nextTeacher.id : "";
+  room.ownerName = nextTeacher ? nextTeacher.name : "";
+}
+
+function removeParticipantFromRoom(room, participantId) {
+  const participant = room.participants && room.participants[participantId];
+  if (!participant || participantId === roomOwnerId(room)) return false;
+
+  room.removedParticipantIds = room.removedParticipantIds || [];
+  if (!room.removedParticipantIds.includes(participantId)) {
+    room.removedParticipantIds.push(participantId);
+  }
+
+  removeParticipantRecords(room, participantId);
   addEvent(room, `${participant.name} foi removido da sala pelo organizador.`);
   return true;
+}
+
+async function leaveCurrentRoom() {
+  if (!app.room || !app.room.code) {
+    showScreen("room");
+    return;
+  }
+
+  const confirmed = await askConfirm("Realmente quer sair da sala?", "Sair da sala");
+  if (!confirmed) return;
+
+  const code = app.room.code;
+  const room = await loadRoom(code);
+  if (room && room.participants && room.participants[app.profile.id]) {
+    const participant = room.participants[app.profile.id];
+    transferRoomOwnerIfNeeded(room, app.profile.id);
+    removeParticipantRecords(room, app.profile.id);
+    room.leftParticipantIds = [app.profile.id];
+    addEvent(room, `${participant.name} saiu da sala.`);
+
+    if (!teachers(room).length) {
+      await deleteRoom(code);
+    } else {
+      await saveRoom(room);
+    }
+  }
+
+  localStorage.removeItem(roomKey(code));
+  app.room = null;
+  app.selectedRoom = "";
+  app.profile.roomCode = "";
+  saveProfile();
+  knownParticipantIds = new Set();
+  $("#roomInput").value = "";
+  $("#selectedRoomLabel").textContent = "---";
+  showNotice("Voce saiu da sala.", "Sala", "info");
+  showScreen("room");
 }
 
 async function advanceRoom(room) {
@@ -1403,6 +1458,9 @@ $("#createRoom").addEventListener("click", async () => {
 $("#joinRoom").addEventListener("click", async () => {
   await joinRoom($("#roomInput").value || app.selectedRoom, false);
 });
+
+$("#leaveRoom").addEventListener("click", leaveCurrentRoom);
+$("#leaveFinishedRoom").addEventListener("click", leaveCurrentRoom);
 
 $("#chatForm").addEventListener("submit", async (event) => {
   event.preventDefault();

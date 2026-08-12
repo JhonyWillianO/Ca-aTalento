@@ -117,6 +117,7 @@ function sanitizeRoom(room = {}) {
     currentIndex: Number(room.currentIndex || 0),
     participants,
     removedParticipantIds: (Array.isArray(room.removedParticipantIds) ? room.removedParticipantIds : []).map(cleanId).filter(Boolean),
+    leftParticipantIds: (Array.isArray(room.leftParticipantIds) ? room.leftParticipantIds : []).map(cleanId).filter(Boolean),
     queue,
     scores: sanitizeNested(room.scores),
     nextVotes: sanitizeNested(room.nextVotes),
@@ -231,32 +232,37 @@ function mergeRoom(existing, incoming) {
   const removedParticipantIds = [
     ...new Set([...(safeExisting.removedParticipantIds || []), ...(safeIncoming.removedParticipantIds || [])])
   ];
+  const participantDeleteIds = [
+    ...new Set([...removedParticipantIds, ...(safeIncoming.leftParticipantIds || [])])
+  ];
   const participants = withoutRemovedParticipants(
     { ...(safeExisting.participants || {}), ...(safeIncoming.participants || {}) },
-    removedParticipantIds
+    participantDeleteIds
   );
-  const queue = (safeIncoming.queue || safeExisting.queue || []).filter((id) => !removedParticipantIds.includes(id));
+  const queue = (safeIncoming.queue || safeExisting.queue || []).filter((id) => !participantDeleteIds.includes(id));
   const currentIndex = Math.min(Math.max(0, proposedIndex), Math.max(0, queue.length - 1));
   const scores = newRound ? (safeIncoming.scores || {}) : mergeNested(safeExisting.scores, safeIncoming.scores);
   const audienceVotes = newRound ? (safeIncoming.audienceVotes || {}) : mergeNested(safeExisting.audienceVotes, safeIncoming.audienceVotes);
   const nextVotes = newRound ? (safeIncoming.nextVotes || {}) : mergeNested(safeExisting.nextVotes, safeIncoming.nextVotes);
+  const ownerLeft = participantDeleteIds.includes(safeExisting.ownerId);
 
   return {
     ...safeExisting,
     ...safeIncoming,
     status,
-    ownerId: safeExisting.ownerId || safeIncoming.ownerId,
-    ownerName: safeExisting.ownerName || safeIncoming.ownerName,
+    ownerId: ownerLeft ? safeIncoming.ownerId : (safeExisting.ownerId || safeIncoming.ownerId),
+    ownerName: ownerLeft ? safeIncoming.ownerName : (safeExisting.ownerName || safeIncoming.ownerName),
     roundId: incomingRound,
     roundStartedAt: newRound ? incomingStartedAt : existingStartedAt,
     lastActivityAt: Math.max(Number(safeExisting.lastActivityAt || 0), Number(safeIncoming.lastActivityAt || 0)),
     currentIndex,
     removedParticipantIds,
+    leftParticipantIds: [],
     participants,
     queue,
-    scores: withoutRemovedNested(scores, removedParticipantIds),
-    audienceVotes: withoutRemovedNested(audienceVotes, removedParticipantIds),
-    nextVotes: withoutRemovedNested(nextVotes, removedParticipantIds),
+    scores: withoutRemovedNested(scores, participantDeleteIds),
+    audienceVotes: withoutRemovedNested(audienceVotes, participantDeleteIds),
+    nextVotes: withoutRemovedNested(nextVotes, participantDeleteIds),
     events: newRound ? (safeIncoming.events || []) : mergeEvents(safeExisting.events, safeIncoming.events)
   };
 }

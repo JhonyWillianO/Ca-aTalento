@@ -87,10 +87,6 @@ button:disabled {
 }
 
 .app-logo {
-  display: grid;
-  grid-template-columns: 58px auto;
-  gap: 10px;
-  align-items: center;
   color: var(--blue-deep);
   font-size: clamp(26px, 4vw, 44px);
   font-weight: 1000;
@@ -101,16 +97,6 @@ button:disabled {
   animation: titleGlow 3.6s ease-in-out infinite;
 }
 
-.app-logo img {
-  grid-row: 1 / 3;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: #fff;
-  box-shadow: 0 4px 0 rgba(3, 28, 79, 0.18);
-}
-
 .app-logo b {
   display: block;
   color: var(--yellow);
@@ -119,20 +105,8 @@ button:disabled {
 .header-profile {
   position: absolute;
   right: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
   color: var(--blue-deep);
   font-size: 24px;
-}
-
-.header-profile img {
-  width: 58px;
-  height: 58px;
-  border: 4px solid #fff;
-  border-radius: 50%;
-  object-fit: cover;
-  background: #fff;
 }
 
 .app-shell {
@@ -848,6 +822,19 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.leave-room-button {
+  min-width: 150px;
+  min-height: 46px;
+  border-width: 4px;
+  border-radius: 18px;
+  font-size: 16px;
+}
+
+.scoreboard-leave {
+  justify-self: center;
 }
 
 .icon-round {
@@ -1653,24 +1640,12 @@ h2 {
   }
 
   .app-logo {
-    grid-template-columns: 44px auto;
     font-size: 26px;
     text-align: left;
   }
 
-  .app-logo img {
-    width: 44px;
-    height: 44px;
-  }
-
   .header-profile {
-    gap: 6px;
     font-size: 18px;
-  }
-
-  .header-profile img {
-    width: 48px;
-    height: 48px;
   }
 
   .join-card,
@@ -1704,6 +1679,19 @@ h2 {
   .podium {
     max-width: 100%;
     gap: 10px;
+  }
+
+  .stage-toolbar {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stage-toolbar .ribbon.tiny {
+    flex: 1 1 180px;
+  }
+
+  .leave-room-button {
+    width: min(100%, 220px);
   }
 
   .dramatic-podium.has-tie-winners {
