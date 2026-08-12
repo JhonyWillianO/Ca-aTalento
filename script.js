@@ -173,6 +173,7 @@ function createRoom(code) {
     ownerId: app.profile.role === "teacher" ? app.profile.id : "",
     ownerName: app.profile.role === "teacher" ? app.profile.name : "",
     roundId: crypto.randomUUID(),
+    roundStartedAt: Date.now(),
     currentIndex: 0,
     participants: {},
     removedParticipantIds: [],
@@ -319,6 +320,7 @@ function isRoomOwner(room = app.room) {
 function resetRoomForNewRound(room) {
   room.status = "live";
   room.roundId = crypto.randomUUID();
+  room.roundStartedAt = Date.now();
   room.currentIndex = 0;
   room.scores = {};
   room.nextVotes = {};
@@ -587,14 +589,14 @@ function renderRoomEntry() {
   const isViewer = app.profile.role === "viewer";
   $("#roomScreenTitle").textContent = isTeacher ? "SALA DO PROFESSOR" : isViewer ? "ENTRADA DOS CONVIDADOS" : "ENTRADA DO ALUNO";
   $("#roomHelp").textContent = isTeacher
-    ? "Crie uma sala nova ou entre em uma sala existente com o mesmo codigo."
+    ? "Crie uma sala nova, digite um codigo existente ou use o scanner de QR Code."
     : isViewer
       ? "Digite o codigo da sala ou use o scanner de QR Code."
-      : "Aluno entra apenas com o codigo enviado pelo professor.";
+      : "Aluno entra com o codigo enviado pelo professor ou pelo scanner de QR Code.";
 
   $("#createRoom").style.display = isTeacher ? "inline-block" : "none";
   $("#roomGrid").style.display = isTeacher ? "grid" : "none";
-  $("#scannerBox").classList.toggle("is-active", isViewer);
+  $("#scannerBox").classList.add("is-active");
   renderRooms();
 }
 
@@ -820,7 +822,7 @@ function renderAudienceVote(performer, live) {
 function renderQrCode(code) {
   const canvas = $("#qrCanvas");
   const ctx = canvas.getContext("2d");
-  const inviteUrl = `${location.href.split("?")[0]}?room=${encodeURIComponent(code)}&role=viewer`;
+  const inviteUrl = `${location.href.split("?")[0]}?room=${encodeURIComponent(code)}`;
   const image = new Image();
   image.crossOrigin = "anonymous";
   image.onload = () => {
@@ -1151,7 +1153,8 @@ async function startScanner() {
       $("#selectedRoomLabel").textContent = detectedCode;
       app.selectedRoom = detectedCode;
       stopScanner();
-      $("#scannerStatus").textContent = `Codigo ${detectedCode} encontrado. Clique em ENTRAR.`;
+      $("#scannerStatus").textContent = `Codigo ${detectedCode} encontrado. Entrando...`;
+      await joinRoom(detectedCode, false);
     }, 700);
   } catch {
     $("#scannerStatus").textContent = "Nao foi possivel abrir a camera. Digite o codigo manualmente.";
@@ -1192,10 +1195,16 @@ function hydrateFromUrl() {
     $("#selectedRoomLabel").textContent = room;
     app.selectedRoom = room;
   }
+
+  return Boolean(room);
 }
 
-hydrateFromUrl();
+const shouldAutoJoinRoom = hydrateFromUrl();
 updateHeader();
 syncRoleButtons();
 updateScoreTotal();
 window.setInterval(syncActiveRoom, 2500);
+
+if (shouldAutoJoinRoom) {
+  window.setTimeout(() => joinRoom(app.selectedRoom, false), 150);
+}

@@ -71,9 +71,27 @@ function withoutRemovedNested(values = {}, removedIds = []) {
 function mergeRoom(existing, incoming) {
   if (!existing) return incoming;
 
+  const existingStartedAt = Number(existing.roundStartedAt || existing.createdAt || 0);
+  const incomingStartedAt = Number(incoming.roundStartedAt || incoming.createdAt || existingStartedAt);
+  if (incomingStartedAt < existingStartedAt) {
+    const removedParticipantIds = [
+      ...new Set([...(existing.removedParticipantIds || []), ...(incoming.removedParticipantIds || [])])
+    ];
+
+    return {
+      ...existing,
+      removedParticipantIds,
+      participants: withoutRemovedParticipants(
+        { ...(existing.participants || {}), ...(incoming.participants || {}) },
+        removedParticipantIds
+      ),
+      events: mergeEvents(existing.events, incoming.events)
+    };
+  }
+
   const existingRound = existing.roundId || "legacy";
   const incomingRound = incoming.roundId || existingRound;
-  const newRound = incomingRound !== existingRound;
+  const newRound = incomingRound !== existingRound || incomingStartedAt > existingStartedAt;
   const status = incoming.status === "finished" || existing.status === "finished"
     ? incoming.status
     : existing.status;
@@ -101,6 +119,7 @@ function mergeRoom(existing, incoming) {
     ...incoming,
     status,
     roundId: incomingRound,
+    roundStartedAt: newRound ? incomingStartedAt : existingStartedAt,
     currentIndex,
     removedParticipantIds,
     participants,

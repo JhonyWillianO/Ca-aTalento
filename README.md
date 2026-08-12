@@ -10,7 +10,8 @@ Aplicativo web inspirado no visual do Gartic, feito para uma competicao de apres
 - somente o organizador pode recomeçar a sala e remover alunos, professores ou convidados;
 - o organizador tambem e o unico que ve o botao `FINALIZAR SHOW`;
 - ao finalizar o show, o app pede confirmacao antes de encerrar;
-- alunos entram na sala com o codigo enviado pelo professor e ficam em fila;
+- alunos entram na sala com o codigo ou QR Code enviado pelo professor e ficam em fila;
+- professores tambem podem entrar por QR Code usando o papel `Professor` no dispositivo;
 - convidados aparecem em um bloco proprio abaixo dos alunos;
 - convidados entram com codigo ou scanner de QR Code para acompanhar;
 - professor da nota para o aluno da vez;
