@@ -67,7 +67,7 @@ const PUBLIC_VOTES = {
 const BLOCKED_WORDS = [
   "arrombado",
   "boquete",
-  "buceta",
+  "bucet",
   "cacete",
   "caralho",
   "fdp",
@@ -83,13 +83,16 @@ const BLOCKED_WORDS = [
   "pinto",
   "porn",
   "porno",
-  "porra",
+  "porr",
   "puta",
   "puto",
   "rola",
+  "safad",
   "sexo",
   "vtnc"
 ];
+
+const BLOCKED_EXACT_WORDS = ["cu"];
 
 const IMAGE_BLOCKED_TERMS = ["18", "adult", "nude", "nudes", "pelada", "pelado", "porn", "porno", "sexo", "xxx"];
 
@@ -136,10 +139,26 @@ function normalizeModerationText(value = "") {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+function moderationTokens(value = "") {
+  return String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[@4]/g, "a")
+    .replace(/[!1|]/g, "i")
+    .replace(/[0]/g, "o")
+    .replace(/[3]/g, "e")
+    .replace(/[5$]/g, "s")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
 function hasBlockedText(value) {
   const text = normalizeModerationText(value);
+  const tokens = moderationTokens(value);
   if (!text) return false;
-  return BLOCKED_WORDS.some((word) => text.includes(normalizeModerationText(word)));
+  if (BLOCKED_WORDS.some((word) => text.includes(normalizeModerationText(word)))) return true;
+  return BLOCKED_EXACT_WORDS.some((word) => tokens.includes(normalizeModerationText(word)) || text === normalizeModerationText(word));
 }
 
 function hasBlockedImageName(file) {
@@ -394,6 +413,7 @@ function syncParticipantJoinSounds(room, playSound = true) {
 }
 
 function showScreen(name) {
+  document.body.dataset.screen = name;
   Object.values(screens).forEach((screen) => screen.classList.remove("is-active"));
   screens[name].classList.add("is-active");
   if (name === "room") renderRoomEntry();
@@ -1892,6 +1912,7 @@ async function restoreSavedSession() {
 }
 
 const shouldAutoJoinRoom = hydrateFromUrl();
+document.body.dataset.screen = "welcome";
 updateHeader();
 syncRoleButtons();
 updateScoreTotal();
