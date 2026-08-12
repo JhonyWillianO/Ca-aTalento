@@ -1395,6 +1395,97 @@ h2 {
   display: block;
 }
 
+.notice-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.notice-banner {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  width: min(560px, calc(100% - 28px));
+  display: grid;
+  gap: 4px;
+  padding: 14px 18px;
+  border: 3px solid #9db1bf;
+  border-radius: 12px;
+  color: var(--blue-deep);
+  background: #ffffff;
+  box-shadow: 0 6px 0 rgba(3, 28, 79, 0.18), 0 20px 48px rgba(10, 111, 134, 0.22);
+  opacity: 0;
+  transform: translate(-50%, -18px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.notice-banner.is-active {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.notice-banner strong {
+  font-size: 18px;
+}
+
+.notice-banner span {
+  color: #63737a;
+  font-weight: 900;
+}
+
+.notice-banner.warning {
+  border-color: var(--yellow);
+}
+
+.notice-banner.danger {
+  border-color: var(--danger);
+}
+
+.notice-layer.is-confirming {
+  pointer-events: auto;
+  background: rgba(4, 35, 48, 0.32);
+}
+
+.confirm-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(520px, calc(100% - 28px));
+  display: none;
+  gap: 18px;
+  padding: 24px;
+  border: 4px solid var(--yellow);
+  border-radius: 16px;
+  color: var(--blue-deep);
+  background: #ffffff;
+  box-shadow: 0 8px 0 rgba(3, 28, 79, 0.22), 0 28px 70px rgba(3, 28, 79, 0.3);
+  transform: translate(-50%, -50%);
+}
+
+.confirm-panel.is-active {
+  display: grid;
+  animation: floatIn 180ms ease-out both;
+}
+
+.confirm-panel strong {
+  font-size: 26px;
+}
+
+.confirm-panel p {
+  margin: 8px 0 0;
+  color: #65757c;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
 @media (max-width: 900px) {
   .game-header {
     height: auto;

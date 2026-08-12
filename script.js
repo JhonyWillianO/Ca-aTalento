@@ -54,9 +54,81 @@ let scoreboardRevealKey = "";
 let scoreboardRevealComplete = false;
 let scoreboardRevealTimers = [];
 let scoreboardRevealedRanks = new Set();
+let noticeTimer = null;
 
 function cleanText(value = "", maxLength = 80) {
   return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function ensureNoticeLayer() {
+  let layer = $("#noticeLayer");
+  if (layer) return layer;
+
+  layer = document.createElement("div");
+  layer.id = "noticeLayer";
+  layer.className = "notice-layer";
+  layer.innerHTML = `
+    <div class="notice-banner" id="noticeBanner" role="status">
+      <strong id="noticeTitle"></strong>
+      <span id="noticeMessage"></span>
+    </div>
+    <div class="confirm-panel" id="confirmPanel" role="dialog" aria-modal="true">
+      <div>
+        <strong id="confirmTitle"></strong>
+        <p id="confirmMessage"></p>
+      </div>
+      <div class="confirm-actions">
+        <button class="test-button" id="confirmCancel">CANCELAR</button>
+        <button class="danger-button" id="confirmOk">CONFIRMAR</button>
+      </div>
+    </div>
+  `;
+  document.body.append(layer);
+  return layer;
+}
+
+function showNotice(message, title = "Aviso", type = "info") {
+  const layer = ensureNoticeLayer();
+  const banner = $("#noticeBanner");
+  window.clearTimeout(noticeTimer);
+
+  banner.className = `notice-banner is-active ${type}`;
+  $("#noticeTitle").textContent = title;
+  $("#noticeMessage").textContent = message;
+  layer.classList.add("has-banner");
+  playActionSound();
+
+  noticeTimer = window.setTimeout(() => {
+    banner.classList.remove("is-active");
+    layer.classList.remove("has-banner");
+  }, 4200);
+}
+
+function askConfirm(message, title = "Confirmar") {
+  const layer = ensureNoticeLayer();
+  const panel = $("#confirmPanel");
+  const ok = $("#confirmOk");
+  const cancel = $("#confirmCancel");
+
+  $("#confirmTitle").textContent = title;
+  $("#confirmMessage").textContent = message;
+  layer.classList.add("is-confirming");
+  panel.classList.add("is-active");
+  playActionSound();
+
+  return new Promise((resolve) => {
+    const finish = (answer) => {
+      panel.classList.remove("is-active");
+      layer.classList.remove("is-confirming");
+      ok.removeEventListener("click", onOk);
+      cancel.removeEventListener("click", onCancel);
+      resolve(answer);
+    };
+    const onOk = () => finish(true);
+    const onCancel = () => finish(false);
+    ok.addEventListener("click", onOk);
+    cancel.addEventListener("click", onCancel);
+  });
 }
 
 function ensureAudio() {
@@ -315,9 +387,13 @@ async function saveRoom(room) {
       if (response.ok) {
         const data = await response.json();
         if (data.room) app.room = data.room;
+      } else {
+        const data = await response.json().catch(() => ({}));
+        showNotice(data.error || "Nao foi possivel salvar a sala agora.", "Erro na sala", "danger");
       }
     } catch {
       // The local copy remains available if the network briefly fails.
+      showNotice("Conexao instavel. A sala foi salva neste aparelho e tentara sincronizar depois.", "Sem conexao", "warning");
     }
   }
 
@@ -402,7 +478,8 @@ function upsertParticipant(room) {
     name: cleanText(app.profile.name, 32),
     photo: String(app.profile.photo || "").length > 260000 ? "" : app.profile.photo,
     role: app.profile.role,
-    joinedAt: previous?.joinedAt || Date.now()
+    joinedAt: previous?.joinedAt || Date.now(),
+    lastSeenAt: Date.now()
   };
 
   if (!previous) addEvent(room, `${app.profile.name} entrou como ${roleLabel(app.profile.role)}.`);
@@ -421,7 +498,7 @@ async function joinRoom(code, shouldCreate = false) {
 
   const cleanCode = shouldCreate ? normalizeCode(code || makeCode()) : normalizeCode(code);
   if (!cleanCode) {
-    alert("Digite ou escolha o codigo de uma sala.");
+    showNotice("Digite ou escolha o codigo de uma sala.", "Codigo obrigatorio", "warning");
     return;
   }
 
@@ -430,7 +507,7 @@ async function joinRoom(code, shouldCreate = false) {
   if (!room && shouldCreate) room = createRoom(cleanCode);
 
   if (!room) {
-    alert("Sala nao encontrada. Confira o codigo ou crie uma nova sala.");
+    showNotice("Sala nao encontrada. Confira o codigo ou peça um novo codigo ao professor.", "Sala indisponivel", "warning");
     return;
   }
 
@@ -653,7 +730,7 @@ async function syncActiveRoom() {
     app.room = null;
     app.profile.roomCode = "";
     saveProfile();
-    alert("Esta sala foi fechada pelo organizador.");
+    showNotice("Esta sala foi fechada pelo organizador ou ficou inativa por muito tempo.", "Sala encerrada", "warning");
     showScreen("room");
     return;
   }
@@ -661,7 +738,7 @@ async function syncActiveRoom() {
   if (latest.participants && !latest.participants[app.profile.id]) {
     app.room = null;
     app.profile.roomCode = "";
-    alert("Voce foi removido da sala pelo organizador.");
+    showNotice("Voce foi removido da sala pelo professor organizador.", "Participante removido", "danger");
     showScreen("room");
     return;
   }
@@ -674,6 +751,15 @@ async function syncActiveRoom() {
   if (latest.status !== previousStatus) {
     showScreen(latest.status === "finished" ? "scoreboard" : "stage");
   }
+}
+
+async function sendPresenceHeartbeat() {
+  if (!USE_REMOTE_STORAGE || !app.room?.code || !app.room.participants?.[app.profile.id]) return;
+
+  const room = await loadRoom(app.room.code);
+  if (!room?.participants?.[app.profile.id]) return;
+  upsertParticipant(room);
+  await saveRoom(room);
 }
 
 function renderEmpty(target) {
@@ -1166,7 +1252,7 @@ $("#photoInput").addEventListener("change", async (event) => {
     $("#profilePhoto").src = photo;
     updateHeader();
   } catch {
-    alert("Nao foi possivel carregar esta foto. Tente outra imagem.");
+    showNotice("Nao foi possivel carregar esta foto. Tente outra imagem.", "Foto invalida", "warning");
   }
 });
 
@@ -1193,7 +1279,7 @@ $("#roomInput").addEventListener("input", (event) => {
 
 $("#createRoom").addEventListener("click", async () => {
   if (app.profile.role !== "teacher") {
-    alert("Somente professores podem criar sala.");
+    showNotice("Somente professores podem criar sala.", "Acesso de professor", "warning");
     return;
   }
   const code = await createUniqueRoomCode();
@@ -1230,7 +1316,7 @@ document.addEventListener("click", async (event) => {
 
   const room = await loadRoom(app.room.code);
   if (!room || !isRoomOwner(room)) {
-    alert("Somente o professor que criou a sala pode remover participantes.");
+    showNotice("Somente o professor que criou a sala pode remover participantes.", "Permissao negada", "warning");
     return;
   }
 
@@ -1238,7 +1324,7 @@ document.addEventListener("click", async (event) => {
   const participant = room.participants?.[participantId];
   if (!participant) return;
 
-  const confirmed = window.confirm(`Remover ${participant.name} da sala?`);
+  const confirmed = await askConfirm(`Remover ${participant.name} da sala?`, "Remover participante");
   if (!confirmed) return;
 
   if (removeParticipantFromRoom(room, participantId)) {
@@ -1259,7 +1345,7 @@ $$("[data-public-vote]").forEach((button) => {
     room.audienceVotes[performer.id] ||= {};
 
     if (viewerVotedStudent(performer.id, app.profile.id, room)) {
-      alert("Seu voto para este aluno ja foi registrado.");
+      showNotice("Seu voto para este aluno ja foi registrado.", "Voto duplicado", "warning");
       app.room = room;
       render();
       return;
@@ -1297,7 +1383,7 @@ $("#sendScore").addEventListener("click", async () => {
   if (!room) return;
   room.scores[performer.id] ||= {};
   if (teacherScoredStudent(performer.id, app.profile.id, room)) {
-    alert("Voce ja deu nota para este aluno nesta rodada.");
+    showNotice("Voce ja deu nota para este aluno nesta rodada.", "Nota ja enviada", "warning");
     app.room = room;
     render();
     return;
@@ -1323,7 +1409,7 @@ $("#nextStudent").addEventListener("click", async () => {
 
   const voteStatus = teacherVoteStatus(livePerformer.id, room);
   if (!voteStatus.complete) {
-    alert(`Aguardando notas dos professores: ${voteStatus.votedCount}/${voteStatus.total}`);
+    showNotice(`Aguardando notas dos professores: ${voteStatus.votedCount}/${voteStatus.total}`, "Ainda nao liberado", "warning");
     app.room = room;
     render();
     return;
@@ -1351,11 +1437,11 @@ $("#finishRoom").addEventListener("click", async () => {
   const room = await loadRoom(app.room.code);
   if (!room) return;
   if (!isRoomOwner(room)) {
-    alert("Somente o professor que criou a sala pode finalizar o show.");
+    showNotice("Somente o professor que criou a sala pode finalizar o show.", "Permissao negada", "warning");
     return;
   }
 
-  const confirmed = window.confirm("Tem certeza que quer finalizar o show?");
+  const confirmed = await askConfirm("Tem certeza que quer finalizar o show?", "Finalizar show");
   if (!confirmed) return;
 
   room.status = "finished";
@@ -1397,7 +1483,7 @@ $("#restartCompetition").addEventListener("click", async () => {
   const room = await loadRoom(app.room.code);
   if (!room) return;
   if (!isRoomOwner(room)) {
-    alert("Somente o professor que criou a sala pode recomeçar.");
+    showNotice("Somente o professor que criou a sala pode recomeçar.", "Permissao negada", "warning");
     return;
   }
 
@@ -1503,6 +1589,7 @@ document.addEventListener("click", (event) => {
   playUiClickSound();
 });
 window.setInterval(syncActiveRoom, 2500);
+window.setInterval(sendPresenceHeartbeat, 45000);
 
 if (shouldAutoJoinRoom) {
   window.setTimeout(() => joinRoom(app.selectedRoom, false), 150);

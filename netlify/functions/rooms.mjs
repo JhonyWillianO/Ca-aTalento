@@ -8,6 +8,8 @@ const headers = {
 const MAX_BODY_BYTES = 900000;
 const MAX_EVENTS = 80;
 const MAX_PARTICIPANTS = 220;
+const ROOM_IDLE_MS = 60 * 60 * 1000;
+const PARTICIPANT_STALE_MS = 60 * 60 * 1000;
 const VALID_ROLES = new Set(["student", "teacher", "viewer"]);
 
 function json(data, status = 200) {
@@ -39,7 +41,8 @@ function sanitizeParticipant(person = {}, fallbackId = "") {
     name: cleanText(person.name || "Visitante", 32),
     photo: String(person.photo || "").length <= 260000 ? String(person.photo || "") : "",
     role: VALID_ROLES.has(person.role) ? person.role : "student",
-    joinedAt: Number(person.joinedAt || Date.now())
+    joinedAt: Number(person.joinedAt || Date.now()),
+    lastSeenAt: Number(person.lastSeenAt || person.joinedAt || Date.now())
   };
 }
 
@@ -118,8 +121,33 @@ function sanitizeRoom(room = {}) {
     nextVotes: sanitizeNested(room.nextVotes),
     audienceVotes: sanitizeNested(room.audienceVotes),
     events: sanitizeEvents(room.events),
-    createdAt: Number(room.createdAt || Date.now())
+    createdAt: Number(room.createdAt || Date.now()),
+    updatedAt: Number(room.updatedAt || room.createdAt || Date.now())
   };
+}
+
+function pruneStaleParticipants(room, now = Date.now()) {
+  const participants = {};
+
+  for (const [id, person] of Object.entries(room.participants || {})) {
+    if (now - Number(person.lastSeenAt || person.joinedAt || 0) <= PARTICIPANT_STALE_MS) {
+      participants[id] = person;
+    }
+  }
+
+  const participantIds = new Set(Object.keys(participants));
+  return {
+    ...room,
+    participants,
+    queue: (room.queue || []).filter((id) => participantIds.has(id))
+  };
+}
+
+function roomShouldBeDeleted(room, now = Date.now()) {
+  const cleaned = pruneStaleParticipants(sanitizeRoom(room), now);
+  const hasTeacher = Object.values(cleaned.participants || {}).some((person) => person.role === "teacher");
+  const idleFor = now - Number(cleaned.updatedAt || cleaned.createdAt || 0);
+  return !hasTeacher || idleFor >= ROOM_IDLE_MS;
 }
 
 function mergeNested(existing = {}, incoming = {}) {
@@ -232,6 +260,7 @@ function mergeRoom(existing, incoming) {
 export default async (req, context) => {
   const store = getStore({ name: "caca-talentos-rooms", consistency: "strong" });
   const code = cleanCode(context.params?.code || "");
+  const now = Date.now();
 
   if (req.method === "GET" && !code) {
     const { blobs } = await store.list({ prefix: "room-" });
@@ -241,12 +270,12 @@ export default async (req, context) => {
       const room = await store.get(blob.key, { type: "json" });
       if (!room) continue;
 
-      if (Object.keys(room.participants || {}).length === 0) {
+      if (roomShouldBeDeleted(room, now)) {
         await store.delete(blob.key);
         continue;
       }
 
-      rooms.push(room);
+      rooms.push(pruneStaleParticipants(sanitizeRoom(room), now));
     }
 
     rooms.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
@@ -257,7 +286,12 @@ export default async (req, context) => {
 
   if (req.method === "GET") {
     const room = await store.get(roomKey(code), { type: "json" });
-    return room ? json({ room }) : json({ error: "Sala nao encontrada." }, 404);
+    if (!room) return json({ error: "Sala nao encontrada." }, 404);
+    if (roomShouldBeDeleted(room, now)) {
+      await store.delete(roomKey(code));
+      return json({ error: "Sala expirada." }, 404);
+    }
+    return json({ room: pruneStaleParticipants(sanitizeRoom(room), now) });
   }
 
   if (req.method === "DELETE") {
@@ -284,7 +318,7 @@ export default async (req, context) => {
 
     const existing = await store.get(roomKey(code), { type: "json" });
     const mergedRoom = mergeRoom(existing, room);
-    mergedRoom.updatedAt = Date.now();
+    mergedRoom.updatedAt = now;
     await store.setJSON(roomKey(code), mergedRoom);
     return json({ room: mergedRoom });
   }
