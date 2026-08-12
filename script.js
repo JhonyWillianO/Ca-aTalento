@@ -36,6 +36,13 @@ const PUBLIC_VOTES = {
   great: { label: "Maravilhoso", value: 100 }
 };
 
+const SOUND_FILES = {
+  drumRoll: "./scratchonix-drum-roll-for-victory-366448.mp3",
+  fanfare: "./u_ss015dykrt-brass-fanfare-with-timpani-and-winchimes-reverberated-146260.mp3",
+  victory: "./u_it78ck90s3-orchestral-win-331233.mp3",
+  defeat: "./coghezzi-game-over-orchestral-stinger-cartoon-defeat-546515.mp3"
+};
+
 let scannerStream = null;
 let scannerTimer = null;
 const USE_REMOTE_STORAGE = location.protocol.startsWith("http");
@@ -43,6 +50,10 @@ let audioContext = null;
 let knownParticipantIds = new Set();
 let lastUiSoundAt = 0;
 let lastRangeSoundAt = 0;
+let scoreboardRevealKey = "";
+let scoreboardRevealComplete = false;
+let scoreboardRevealTimers = [];
+let scoreboardRevealedRanks = new Set();
 
 function cleanText(value = "", maxLength = 80) {
   return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
@@ -54,6 +65,14 @@ function ensureAudio() {
   audioContext ||= new AudioCtor();
   if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
   return audioContext;
+}
+
+function playAudioFile(src, volume = 0.82) {
+  ensureAudio();
+  const audio = new Audio(src);
+  audio.volume = volume;
+  audio.play().catch(() => {});
+  return audio;
 }
 
 function playTone(frequency, start, duration, type = "sine", gain = 0.12) {
@@ -123,6 +142,18 @@ function playFinishSound() {
   playTone(523, 0.08, 0.16, "triangle", 0.08);
   playTone(659, 0.2, 0.16, "triangle", 0.08);
   playTone(784, 0.32, 0.24, "triangle", 0.1);
+}
+
+function playFinalResultSound(ranking) {
+  const winner = ranking[0];
+  const shouldCelebrate = app.profile.role === "teacher" || app.profile.role === "viewer" || app.profile.id === winner?.id;
+
+  if (shouldCelebrate) {
+    playAudioFile(SOUND_FILES.fanfare, 0.72);
+    window.setTimeout(() => playAudioFile(SOUND_FILES.victory, 0.86), 620);
+  } else {
+    playAudioFile(SOUND_FILES.defeat, 0.84);
+  }
 }
 
 function playRemoveSound() {
@@ -821,38 +852,147 @@ function renderScores() {
   });
 }
 
+function clearScoreboardRevealTimers() {
+  scoreboardRevealTimers.forEach((timer) => window.clearTimeout(timer));
+  scoreboardRevealTimers = [];
+}
+
+function stopScoreboardReveal() {
+  clearScoreboardRevealTimers();
+  scoreboardRevealKey = currentScoreboardKey();
+  scoreboardRevealComplete = false;
+  scoreboardRevealedRanks = new Set();
+}
+
+function currentScoreboardKey(room = app.room) {
+  return `${room?.code || "local"}-${room?.roundId || "round"}-${room?.status || "live"}`;
+}
+
+function rankAward(rank) {
+  if (rank === 1) return { symbol: "👑", label: "Coroa de ouro", className: "gold" };
+  if (rank === 2) return { symbol: "👑", label: "Coroa de prata", className: "silver" };
+  if (rank === 3) return { symbol: "👑", label: "Coroa de bronze", className: "bronze" };
+  if (rank === 4) return { symbol: "🏅", label: "Medalha", className: "medal-fourth" };
+  return { symbol: "★", label: "Participante", className: "honor" };
+}
+
+function createRankingItem(student, index, options = {}) {
+  const rank = index + 1;
+  const award = rankAward(rank);
+  const li = document.createElement("li");
+  const medal = document.createElement("span");
+  const imageWrap = document.createElement("div");
+  const awardBadge = document.createElement("span");
+  const image = document.createElement("img");
+  const body = document.createElement("div");
+  const name = document.createElement("strong");
+  const meta = document.createElement("span");
+
+  li.className = `rank-card rank-${rank} ${options.hidden ? "is-hidden" : "is-revealed"}`;
+  medal.className = "medal";
+  medal.textContent = rank;
+  imageWrap.className = "rank-photo";
+  awardBadge.className = `rank-award ${award.className}`;
+  awardBadge.title = award.label;
+  awardBadge.textContent = award.symbol;
+  image.src = avatarFor(student);
+  image.alt = "";
+  name.textContent = student.name;
+  meta.className = "meta";
+  const publicScore = audienceApproval(student.id);
+  meta.textContent = `Nota final ${student.finalScore.toFixed(1)} / 40 - ${publicScore.label}`;
+
+  imageWrap.append(awardBadge, image);
+  body.append(name, meta);
+  li.append(medal, imageWrap, body);
+  return li;
+}
+
+function revealScoreboardItems(items, ranking, key) {
+  clearScoreboardRevealTimers();
+  scoreboardRevealComplete = false;
+
+  items.forEach(({ rank }, index) => {
+    const delay = index * 1700 + 450;
+    const timer = window.setTimeout(() => {
+      if (scoreboardRevealKey !== key) return;
+
+      if (rank === 1) playAudioFile(SOUND_FILES.drumRoll, 0.78);
+      scoreboardRevealedRanks.add(rank);
+      renderScoreboard();
+
+      if (rank === 1) {
+        const finalTimer = window.setTimeout(() => {
+          if (scoreboardRevealKey !== key) return;
+          scoreboardRevealComplete = true;
+          playFinalResultSound(ranking);
+          renderScoreboard();
+        }, 1450);
+        scoreboardRevealTimers.push(finalTimer);
+      } else {
+        playActionSound();
+      }
+    }, delay);
+    scoreboardRevealTimers.push(timer);
+  });
+}
+
+function renderRemainingRanking(ranking, canShow) {
+  const target = $("#remainingRanking");
+  const remaining = ranking.slice(4);
+  target.innerHTML = "";
+
+  if (!remaining.length || !canShow) {
+    target.classList.remove("is-active");
+    return;
+  }
+
+  target.classList.add("is-active");
+  const title = document.createElement("strong");
+  const list = document.createElement("ol");
+  title.textContent = "Demais participantes";
+
+  remaining.forEach((student, index) => {
+    list.append(createRankingItem(student, index + 4));
+  });
+
+  target.append(title, list);
+}
+
 function renderScoreboard() {
   const podium = $("#podium");
+  const revealKey = currentScoreboardKey();
+  const isNewReveal = scoreboardRevealKey !== revealKey;
   podium.innerHTML = "";
 
   const ranking = finalRanking();
+  podium.className = "podium dramatic-podium";
 
   if (!ranking.length) {
     renderEmpty(podium);
   } else {
-    ranking.forEach((student, index) => {
-      const li = document.createElement("li");
-      const medal = document.createElement("span");
-      const image = document.createElement("img");
-      const body = document.createElement("div");
-      const name = document.createElement("strong");
-      const meta = document.createElement("span");
+    if (isNewReveal) {
+      scoreboardRevealKey = revealKey;
+      scoreboardRevealComplete = false;
+      scoreboardRevealedRanks = new Set();
+    }
 
-      medal.className = "medal";
-      medal.textContent = index + 1;
-      image.src = avatarFor(student);
-      image.alt = "";
-      name.textContent = student.name;
-      meta.className = "meta";
-      const publicScore = audienceApproval(student.id);
-      meta.textContent = `Nota final ${student.finalScore.toFixed(1)} / 40 - ${publicScore.label}`;
+    const topFour = ranking.slice(0, 4);
+    const revealOrder = topFour.map((student, index) => ({ student, index })).reverse();
+    const revealItems = [];
 
-      body.append(name, meta);
-      li.append(medal, image, body);
-      podium.append(li);
+    revealOrder.forEach(({ student, index }) => {
+      const rank = index + 1;
+      const shouldHide = !scoreboardRevealComplete && !scoreboardRevealedRanks.has(rank);
+      const item = createRankingItem(student, index, { hidden: shouldHide });
+      podium.append(item);
+      revealItems.push({ rank });
     });
+
+    if (isNewReveal) revealScoreboardItems(revealItems, ranking, revealKey);
   }
 
+  renderRemainingRanking(ranking, scoreboardRevealComplete);
   const owner = isRoomOwner();
   $("#finishActions").style.display = owner ? "grid" : "none";
   $("#waitingHost").textContent = "Aguardando o professor organizador iniciar outra rodada.";
@@ -885,6 +1025,7 @@ function renderPublicSummary() {
 
 function renderStage() {
   if (!app.room) return;
+  if (scoreboardRevealKey && app.room.status !== "finished") stopScoreboardReveal();
 
   const performer = currentStudent();
   $("#currentCode").textContent = app.room.code;
