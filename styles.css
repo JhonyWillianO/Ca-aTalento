@@ -37,14 +37,31 @@ input {
 }
 
 button {
+  position: relative;
   border: 0;
   cursor: pointer;
+  overflow: hidden;
   transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+}
+
+button::after {
+  content: "";
+  position: absolute;
+  inset: -40% auto -40% -70%;
+  width: 55%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-18deg);
+  transition: left 460ms ease;
+  pointer-events: none;
 }
 
 button:not(:disabled):hover {
   transform: translateY(-2px);
   filter: brightness(1.04);
+}
+
+button:not(:disabled):hover::after {
+  left: 115%;
 }
 
 button:not(:disabled):active {
@@ -173,6 +190,28 @@ button:disabled {
 
   50% {
     transform: translateY(-6px) rotate(0.4deg);
+  }
+}
+
+@keyframes buttonPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes selectedBounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.035);
   }
 }
 
@@ -374,12 +413,14 @@ h2 {
   background: #f3f3f3;
   font-weight: 1000;
   text-transform: uppercase;
+  box-shadow: 0 4px 0 rgba(3, 28, 79, 0.16);
 }
 
 .role-pill.is-selected {
   color: #fff;
   background: var(--blue-deep);
   border-color: var(--yellow);
+  animation: selectedBounce 2.3s ease-in-out infinite;
 }
 
 .main-actions,
@@ -412,6 +453,7 @@ h2 {
   box-shadow: 0 5px 0 rgba(3, 28, 79, 0.35);
   font-size: 22px;
   font-weight: 1000;
+  animation: buttonPulse 3.2s ease-in-out infinite;
 }
 
 .blue-button {
@@ -499,6 +541,7 @@ h2 {
   background: var(--blue-deep);
   font-size: 42px;
   font-weight: 1000;
+  box-shadow: 0 4px 0 rgba(3, 28, 79, 0.28);
 }
 
 .search-box {
@@ -549,10 +592,20 @@ h2 {
   border-radius: 10px;
   color: #777;
   background: #fff;
+  box-shadow: 0 4px 0 rgba(3, 28, 79, 0.16);
+  animation: floatIn 260ms ease-out both;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.room-card:not(:disabled):hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: var(--yellow);
+  box-shadow: 0 8px 0 rgba(3, 28, 79, 0.16), 0 18px 32px rgba(10, 111, 134, 0.16);
 }
 
 .room-card.is-selected {
   outline: 5px solid var(--blue);
+  animation: selectedBounce 2.5s ease-in-out infinite;
 }
 
 .room-icon {
@@ -690,6 +743,7 @@ h2 {
   color: #fff;
   background: var(--blue);
   font-weight: 1000;
+  box-shadow: 0 4px 0 rgba(3, 28, 79, 0.25);
 }
 
 .player-list,
@@ -806,6 +860,7 @@ h2 {
   background: var(--danger);
   line-height: 1;
   font-weight: 1000;
+  box-shadow: 0 4px 0 rgba(125, 29, 42, 0.28);
 }
 
 .invite-box.is-active {

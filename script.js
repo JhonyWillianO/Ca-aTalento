@@ -41,6 +41,8 @@ let scannerTimer = null;
 const USE_REMOTE_STORAGE = location.protocol.startsWith("http");
 let audioContext = null;
 let knownParticipantIds = new Set();
+let lastUiSoundAt = 0;
+let lastRangeSoundAt = 0;
 
 function cleanText(value = "", maxLength = 80) {
   return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
@@ -50,7 +52,7 @@ function ensureAudio() {
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtor) return null;
   audioContext ||= new AudioCtor();
-  if (audioContext.state === "suspended") audioContext.resume();
+  if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
   return audioContext;
 }
 
@@ -92,8 +94,47 @@ function playNoiseBurst(start, duration, gain = 0.16, filterFrequency = 1600) {
 }
 
 function playJoinSound() {
-  playTone(520, 0, 0.12, "triangle", 0.1);
-  playTone(780, 0.1, 0.16, "triangle", 0.12);
+  playTone(440, 0, 0.1, "triangle", 0.1);
+  playTone(660, 0.08, 0.12, "triangle", 0.12);
+  playTone(880, 0.18, 0.18, "triangle", 0.1);
+}
+
+function playUiClickSound() {
+  const now = performance.now();
+  if (now - lastUiSoundAt < 70) return;
+  lastUiSoundAt = now;
+  playTone(720, 0, 0.045, "triangle", 0.045);
+  playTone(980, 0.04, 0.055, "triangle", 0.035);
+}
+
+function playActionSound() {
+  playTone(520, 0, 0.08, "triangle", 0.08);
+  playTone(1040, 0.08, 0.12, "triangle", 0.08);
+}
+
+function playAdvanceSound() {
+  playTone(392, 0, 0.08, "square", 0.05);
+  playTone(523, 0.08, 0.08, "square", 0.05);
+  playTone(784, 0.16, 0.16, "triangle", 0.08);
+}
+
+function playFinishSound() {
+  playGoodVoteSound();
+  playTone(523, 0.08, 0.16, "triangle", 0.08);
+  playTone(659, 0.2, 0.16, "triangle", 0.08);
+  playTone(784, 0.32, 0.24, "triangle", 0.1);
+}
+
+function playRemoveSound() {
+  playTone(220, 0, 0.08, "sawtooth", 0.06);
+  playTone(160, 0.08, 0.12, "sawtooth", 0.045);
+}
+
+function playRangeSound() {
+  const now = performance.now();
+  if (now - lastRangeSoundAt < 90) return;
+  lastRangeSoundAt = now;
+  playTone(360 + Math.random() * 260, 0, 0.035, "sine", 0.035);
 }
 
 function playBadVoteSound() {
@@ -1060,6 +1101,7 @@ document.addEventListener("click", async (event) => {
   if (!confirmed) return;
 
   if (removeParticipantFromRoom(room, participantId)) {
+    playRemoveSound();
     await saveRoom(room);
     render();
   }
@@ -1094,12 +1136,16 @@ $$("[data-public-vote]").forEach((button) => {
 
 $("#copyCode").addEventListener("click", async () => {
   await navigator.clipboard.writeText(app.room.code);
+  playActionSound();
   $("#copyCode").textContent = "copiado";
   setTimeout(() => ($("#copyCode").textContent = "copiar"), 900);
 });
 
 $$("[data-criterion]").forEach((input) => {
-  input.addEventListener("input", updateScoreTotal);
+  input.addEventListener("input", () => {
+    updateScoreTotal();
+    playRangeSound();
+  });
 });
 
 $("#sendScore").addEventListener("click", async () => {
@@ -1119,6 +1165,7 @@ $("#sendScore").addEventListener("click", async () => {
   const score = currentCriteriaScore();
   room.scores[performer.id][app.profile.id] = score;
   addEvent(room, `${app.profile.name} avaliou ${performer.name}: ${scoreTotal(score).toFixed(1)} pts.`);
+  playActionSound();
 
   await saveRoom(room);
   render();
@@ -1147,8 +1194,10 @@ $("#nextStudent").addEventListener("click", async () => {
 
   const nextStatus = teacherNextStatus(livePerformer.id, room);
   if (nextStatus.complete) {
+    playAdvanceSound();
     await advanceRoom(room);
   } else {
+    playActionSound();
     addEvent(room, `${app.profile.name} confirmou proximo aluno (${nextStatus.confirmedCount}/${nextStatus.total}).`);
     await saveRoom(room);
   }
@@ -1170,6 +1219,7 @@ $("#finishRoom").addEventListener("click", async () => {
 
   room.status = "finished";
   addEvent(room, "Professor finalizou o show.");
+  playFinishSound();
   await saveRoom(room);
   renderScoreboard();
   showScreen("scoreboard");
@@ -1181,6 +1231,7 @@ $("#joinQueue").addEventListener("click", async () => {
   if (!room.queue.includes(app.profile.id)) {
     room.queue.push(app.profile.id);
     addEvent(room, `${app.profile.name} entrou na fila.`);
+    playActionSound();
   }
   upsertParticipant(room);
   await saveRoom(room);
@@ -1192,6 +1243,7 @@ $("#newCompetition").addEventListener("click", async () => {
     await deleteRoom(app.room.code);
   }
 
+  playActionSound();
   app.room = null;
   app.profile.roomCode = "";
   saveProfile();
@@ -1210,6 +1262,7 @@ $("#restartCompetition").addEventListener("click", async () => {
 
   resetRoomForNewRound(room);
   upsertParticipant(room);
+  playFinishSound();
   await saveRoom(room);
   renderStage();
   showScreen("stage");
@@ -1219,6 +1272,7 @@ app.channel.addEventListener("message", async (event) => {
   if (!app.room || event.data.code !== app.room.code) return;
   app.room = await loadRoom(app.room.code);
   if (!app.room) return;
+  syncParticipantJoinSounds(app.room);
   render();
   showScreen(app.room.status === "finished" ? "scoreboard" : "stage");
 });
@@ -1251,6 +1305,7 @@ async function startScanner() {
       app.selectedRoom = detectedCode;
       stopScanner();
       $("#scannerStatus").textContent = `Codigo ${detectedCode} encontrado. Entrando...`;
+      playActionSound();
       await joinRoom(detectedCode, false);
     }, 700);
   } catch {
@@ -1301,6 +1356,11 @@ updateHeader();
 syncRoleButtons();
 updateScoreTotal();
 document.addEventListener("pointerdown", ensureAudio, { once: true });
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button || button.disabled) return;
+  playUiClickSound();
+});
 window.setInterval(syncActiveRoom, 2500);
 
 if (shouldAutoJoinRoom) {
