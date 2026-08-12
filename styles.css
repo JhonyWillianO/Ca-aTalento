@@ -1,17 +1,18 @@
 :root {
   color-scheme: light;
-  --blue: #0867ff;
-  --blue-dark: #0642a6;
-  --blue-deep: #082d76;
-  --yellow: #ffc928;
-  --orange: #ff8b20;
-  --ink: #09275f;
+  --blue: #0a6f86;
+  --blue-dark: #07556a;
+  --blue-deep: #06435b;
+  --yellow: #dcae31;
+  --orange: #c88922;
+  --green: #6aad3a;
+  --ink: #123f4d;
   --muted: #7b7f88;
-  --line: #c8d5df;
+  --line: #d7c591;
   --panel: #ffffff;
-  --soft: #e8f3f7;
+  --soft: #f5f7ef;
   --danger: #ff4c33;
-  --shadow: 0 8px 0 rgba(3, 28, 79, 0.18), 0 20px 60px rgba(0, 20, 70, 0.25);
+  --shadow: 0 8px 0 rgba(91, 63, 9, 0.16), 0 20px 60px rgba(12, 69, 84, 0.2);
 }
 
 * {
@@ -23,14 +24,11 @@ body {
   min-height: 100vh;
   font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
   color: var(--ink);
-  background-color: var(--blue);
+  background-color: #f4f7ee;
   background-image:
-    linear-gradient(30deg, rgba(0, 50, 160, 0.22) 12%, transparent 12.5%, transparent 87%, rgba(0, 50, 160, 0.22) 87.5%),
-    linear-gradient(150deg, rgba(0, 50, 160, 0.22) 12%, transparent 12.5%, transparent 87%, rgba(0, 50, 160, 0.22) 87.5%),
-    linear-gradient(30deg, rgba(255, 255, 255, 0.08) 12%, transparent 12.5%, transparent 87%, rgba(255, 255, 255, 0.08) 87.5%),
-    linear-gradient(150deg, rgba(255, 255, 255, 0.08) 12%, transparent 12.5%, transparent 87%, rgba(255, 255, 255, 0.08) 87.5%);
-  background-position: 0 0, 0 0, 22px 22px, 22px 22px;
-  background-size: 44px 44px;
+    radial-gradient(circle at 14% 12%, rgba(220, 174, 49, 0.22), transparent 28%),
+    linear-gradient(135deg, rgba(10, 111, 134, 0.12), transparent 38%),
+    linear-gradient(180deg, #ffffff 0%, #edf7f2 100%);
 }
 
 button,
@@ -51,7 +49,7 @@ button:disabled {
 
 .game-header {
   width: min(1230px, calc(100% - 36px));
-  height: 84px;
+  min-height: 92px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,15 +58,17 @@ button:disabled {
 }
 
 .app-logo {
-  color: #fff;
-  font-size: clamp(34px, 5vw, 58px);
+  color: var(--blue-deep);
+  font-size: clamp(26px, 4vw, 44px);
   font-weight: 1000;
   letter-spacing: 0;
-  text-shadow: 0 4px 0 #062a65, 0 0 0 #062a65;
-  -webkit-text-stroke: 2px #062a65;
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(220, 174, 49, 0.35);
+  -webkit-text-stroke: 0;
 }
 
 .app-logo b {
+  display: block;
   color: var(--yellow);
 }
 
@@ -78,7 +78,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #fff;
+  color: var(--blue-deep);
   font-size: 24px;
 }
 
@@ -118,34 +118,54 @@ button:disabled {
   min-height: 720px;
   position: relative;
   padding: 34px;
-  border-radius: 10px;
+  border: 3px solid rgba(220, 174, 49, 0.45);
+  border-radius: 18px;
   background: var(--panel);
   box-shadow: var(--shadow);
 }
 
-.event-stamp {
-  width: 150px;
-  height: 150px;
+.brand-hero {
   display: grid;
-  place-items: center;
-  align-content: center;
-  border: 8px solid #9bb6d1;
-  border-radius: 50%;
-  color: #fff;
-  background: radial-gradient(circle at 35% 30%, #2cc4ff, #334fd0 70%);
-  transform: rotate(-12deg);
-  text-align: center;
-  text-transform: uppercase;
+  grid-template-columns: 260px 1fr;
+  gap: 28px;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffffff, #f8f3df);
+  border: 2px solid rgba(220, 174, 49, 0.45);
 }
 
-.event-stamp span {
-  font-weight: 1000;
+.project-logo {
+  width: 100%;
+  max-width: 260px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.brand-hero h1 {
+  margin: 8px 0 10px;
+  color: var(--blue-deep);
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1;
+}
+
+.brand-hero p {
+  max-width: 650px;
+  color: #47616a;
   font-size: 22px;
+  line-height: 1.35;
+  font-weight: 900;
 }
 
-.event-stamp strong {
-  max-width: 100px;
+.eyebrow-title {
+  color: var(--green);
   font-size: 15px;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .ribbon {
@@ -154,9 +174,9 @@ button:disabled {
   display: grid;
   place-items: center;
   margin: -120px auto 34px;
-  color: var(--yellow);
-  background: var(--blue);
-  border: 5px solid #062a65;
+  color: #ffffff;
+  background: var(--blue-deep);
+  border: 5px solid #d7ad35;
   border-radius: 22px 22px 10px 10px;
   box-shadow: 0 6px 0 rgba(3, 28, 79, 0.35);
   font-size: 30px;
@@ -187,7 +207,11 @@ button:disabled {
   display: grid;
   justify-items: center;
   align-content: start;
-  gap: 22px;
+  gap: 18px;
+  padding: 24px;
+  border: 2px solid #dbe6d0;
+  border-radius: 16px;
+  background: #fbfdf8;
 }
 
 h1,
@@ -198,7 +222,7 @@ p {
 
 h1,
 h2 {
-  color: #0754bd;
+  color: var(--blue-deep);
   font-size: 22px;
   text-transform: uppercase;
 }
@@ -209,7 +233,7 @@ h2 {
   position: relative;
   display: grid;
   place-items: center;
-  border: 5px solid #063a82;
+  border: 5px solid var(--yellow);
   border-radius: 50%;
   background: #fff;
   cursor: pointer;
@@ -233,7 +257,7 @@ h2 {
   border: 5px solid #fff;
   border-radius: 50%;
   color: #fff;
-  background: var(--blue);
+  background: var(--blue-deep);
   font-size: 34px;
   font-weight: 1000;
 }
@@ -286,8 +310,8 @@ h2 {
 
 .role-pill.is-selected {
   color: #fff;
-  background: var(--blue);
-  border-color: #062a65;
+  background: var(--blue-deep);
+  border-color: var(--yellow);
 }
 
 .main-actions,
@@ -323,7 +347,7 @@ h2 {
 }
 
 .blue-button {
-  background: #23b9f4;
+  background: #78c7d1;
 }
 
 .yellow-button {
@@ -345,7 +369,7 @@ h2 {
   justify-items: center;
   gap: 28px;
   padding: 34px;
-  border-left: 3px solid #d0d0d0;
+  border-left: 3px solid rgba(220, 174, 49, 0.45);
   text-align: center;
 }
 
@@ -356,7 +380,7 @@ h2 {
 .project-info p {
   max-width: 520px;
   color: #6f6f6f;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.35;
   font-weight: 900;
 }
@@ -381,10 +405,10 @@ h2 {
   height: 72px;
   display: grid;
   place-items: center;
-  border: 4px solid #063a82;
+  border: 4px solid var(--blue-deep);
   border-radius: 50%;
   color: var(--blue);
-  background: #aee7ff;
+  background: #f8e5a6;
   font-size: 42px;
   font-weight: 1000;
 }
@@ -1092,15 +1116,21 @@ h2 {
     padding: 20px;
   }
 
-  .event-stamp {
-    width: 112px;
-    height: 112px;
-  }
-
   .ribbon,
   .ribbon.small {
     width: 100%;
     margin: 16px 0 24px;
+  }
+
+  .brand-hero {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    padding: 16px;
+  }
+
+  .project-logo {
+    max-width: 220px;
   }
 
   .welcome-grid,

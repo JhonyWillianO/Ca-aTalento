@@ -1,6 +1,6 @@
 # Caca-Talentos Prof. Jony
 
-Aplicativo web inspirado no visual do Gartic, feito para uma competicao de apresentacoes em sala:
+Aplicativo web do Projeto Caca-Talentos, feito para uma competicao de apresentacoes em sala:
 
 - aluno, professor ou convidados entram sem login, apenas com nick e avatar;
 - professor cria uma sala com codigo;
