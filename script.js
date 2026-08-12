@@ -38,6 +38,7 @@ const app = {
   },
   room: null,
   selectedRoom: "",
+  pendingInviteRoom: "",
   channel: createSyncChannel()
 };
 
@@ -742,6 +743,7 @@ async function joinRoom(code, shouldCreate = false) {
 
   app.profile.roomCode = cleanCode;
   app.selectedRoom = cleanCode;
+  app.pendingInviteRoom = "";
   saveProfile();
   await saveRoom(room);
   if (enteredNow) playJoinSound();
@@ -1609,12 +1611,18 @@ $$("[data-role]").forEach((button) => {
 
 $("#openRooms").addEventListener("click", () => {
   if (!profileReady()) return;
+  if (app.pendingInviteRoom) {
+    joinRoom(app.pendingInviteRoom, false);
+    return;
+  }
+
   showScreen("room");
 });
 
 $("#roomInput").addEventListener("input", (event) => {
   event.target.value = normalizeCode(event.target.value);
   app.selectedRoom = event.target.value;
+  app.pendingInviteRoom = "";
   $("#selectedRoomLabel").textContent = event.target.value || "---";
   renderRooms();
 });
@@ -1627,6 +1635,7 @@ $("#createRoom").addEventListener("click", async () => {
   const code = await createUniqueRoomCode();
   $("#roomInput").value = code;
   $("#selectedRoomLabel").textContent = code;
+  app.pendingInviteRoom = "";
   await joinRoom(code, true);
 });
 
@@ -1929,9 +1938,10 @@ function hydrateFromUrl() {
     $("#roomInput").value = room;
     $("#selectedRoomLabel").textContent = room;
     app.selectedRoom = room;
+    app.pendingInviteRoom = room;
   }
 
-  return Boolean(room);
+  return false;
 }
 
 async function restoreSavedSession() {
@@ -1985,6 +1995,11 @@ window.setInterval(sendPresenceHeartbeat, 45000);
 
 if (shouldAutoJoinRoom) {
   window.setTimeout(() => joinRoom(app.selectedRoom, false), 150);
+} else if (app.pendingInviteRoom) {
+  window.setTimeout(() => {
+    showScreen("welcome");
+    showNotice("Codigo da sala lido. Escolha nome, foto e perfil para entrar.", "Convite recebido", "info");
+  }, 150);
 } else {
   window.setTimeout(restoreSavedSession, 150);
 }
