@@ -37,8 +37,8 @@
               </label>
               <input id="photoInput" type="file" accept="image/*" hidden />
 
-              <label class="field">
-                <span>Nick</span>
+              <label class="field name-field">
+                <span>Escolha seu Nome</span>
                 <input id="nameInput" type="text" maxlength="28" placeholder="Seu nome" />
               </label>
 
@@ -150,12 +150,11 @@
                     <span>Descricao</span>
                     <textarea id="participantDescriptionInput" maxlength="140" placeholder="Musica, talento ou recado do participante"></textarea>
                   </label>
-                  <div class="participant-photo-preview">
+                  <label class="participant-photo-picker" for="participantPhotoInput">
                     <img id="participantPhotoPreview" alt="" />
-                  </div>
-                  <label class="participant-photo-button" for="participantPhotoInput">Foto do participante</label>
+                    <span class="edit-badge">+</span>
+                  </label>
                   <input id="participantPhotoInput" type="file" accept="image/*" hidden />
-                  <span id="participantPhotoStatus">Foto padrao</span>
                   <button class="blue-button" type="submit">Adicionar participante</button>
                 </form>
               </section>

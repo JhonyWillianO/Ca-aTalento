@@ -1323,8 +1323,8 @@ function rankAwardAsset(rank) {
   if (rank === 1) return { symbol: "1", label: "Coroa de ouro", className: "gold", image: "./CoroaDeOuro.png" };
   if (rank === 2) return { symbol: "2", label: "Coroa de prata", className: "silver", image: "./CoroaDePrata.png" };
   if (rank === 3) return { symbol: "3", label: "Coroa de bronze", className: "bronze", image: "./CoroaDeBronze.png" };
-  if (rank === 4) return { symbol: "4", label: "Medalha de quarto lugar", className: "medal-fourth", image: "./4Lugar.png" };
-  return { symbol: "*", label: "Participante", className: "honor" };
+  if (rank === 4) return { symbol: "4", label: "Medalha de prata", className: "silver-medal", image: "./Medalha%20de%20Prata%20com%20Capivara%20Cantora.png" };
+  return { symbol: "*", label: "Medalha de bronze", className: "bronze-medal", image: "./Medalha%20de%20bronze%20com%20capivara%20coroada.png" };
 }
 
 function createRankingItem(student, index, options = {}) {
@@ -1927,13 +1927,11 @@ $("#participantPhotoInput").addEventListener("change", async (event) => {
   try {
     if (hasBlockedImageName(file)) throw new Error("Nome de arquivo bloqueado");
     pendingParticipantPhoto = await resizeProfilePhoto(file);
-    $("#participantPhotoStatus").textContent = "Foto selecionada";
     $("#participantPhotoPreview").src = pendingParticipantPhoto;
     playActionSound();
   } catch {
     event.target.value = "";
     pendingParticipantPhoto = "";
-    $("#participantPhotoStatus").textContent = "Foto padrao";
     $("#participantPhotoPreview").src = defaultAvatar("student");
     showNotice("Nao foi possivel carregar esta foto. Tente outra imagem.", "Foto invalida", "warning");
   }
@@ -1986,7 +1984,6 @@ $("#participantForm").addEventListener("submit", async (event) => {
   $("#participantNameInput").value = "";
   $("#participantDescriptionInput").value = "";
   $("#participantPhotoInput").value = "";
-  $("#participantPhotoStatus").textContent = "Foto padrao";
   $("#participantPhotoPreview").src = defaultAvatar("student");
   playActionSound();
   await saveRoom(room);

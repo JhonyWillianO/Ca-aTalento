@@ -23,6 +23,7 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow-x: hidden;
+  position: relative;
   font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
   -webkit-text-size-adjust: 100%;
   color: var(--ink);
@@ -31,6 +32,35 @@ body {
     radial-gradient(circle at 14% 12%, rgba(220, 174, 49, 0.22), transparent 28%),
     linear-gradient(135deg, rgba(10, 111, 134, 0.12), transparent 38%),
     linear-gradient(180deg, #ffffff 0%, #edf7f2 100%);
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+body::before {
+  background:
+    linear-gradient(104deg, transparent 0 28%, rgba(220, 174, 49, 0.2) 33%, transparent 39% 100%),
+    linear-gradient(252deg, transparent 0 36%, rgba(10, 111, 134, 0.16) 42%, transparent 48% 100%),
+    repeating-linear-gradient(90deg, transparent 0 72px, rgba(220, 174, 49, 0.08) 73px 75px, transparent 76px 150px);
+  opacity: 0.8;
+  transform-origin: 50% 0;
+  animation: showLights 9s ease-in-out infinite alternate;
+}
+
+body::after {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(220, 174, 49, 0.34) 0 2px, transparent 3px),
+    radial-gradient(circle at 82% 22%, rgba(10, 111, 134, 0.24) 0 2px, transparent 3px),
+    radial-gradient(circle at 74% 78%, rgba(106, 173, 58, 0.24) 0 2px, transparent 3px);
+  background-size: 220px 180px, 260px 220px, 300px 240px;
+  opacity: 0.65;
+  animation: sparkleDrift 14s linear infinite;
 }
 
 button,
@@ -85,6 +115,7 @@ button:disabled {
   justify-content: center;
   margin: 0 auto;
   position: relative;
+  z-index: 1;
 }
 
 .app-logo {
@@ -119,6 +150,8 @@ body[data-screen="welcome"] .game-header {
   width: min(1230px, calc(100% - 36px));
   margin: 0 auto 28px;
   overflow: visible;
+  position: relative;
+  z-index: 1;
 }
 
 .screen {
@@ -240,6 +273,28 @@ body[data-screen="welcome"] .game-header {
 
   50% {
     transform: scale(1.035);
+  }
+}
+
+@keyframes showLights {
+  from {
+    transform: translateX(-3%) skewX(-2deg);
+    filter: hue-rotate(0deg);
+  }
+
+  to {
+    transform: translateX(3%) skewX(2deg);
+    filter: hue-rotate(8deg);
+  }
+}
+
+@keyframes sparkleDrift {
+  from {
+    background-position: 0 0, 0 0, 0 0;
+  }
+
+  to {
+    background-position: 180px 120px, -160px 140px, 130px -110px;
   }
 }
 
@@ -415,6 +470,16 @@ h2 {
   color: #7b7f88;
   font-weight: 1000;
   text-transform: uppercase;
+}
+
+.name-field {
+  width: min(430px, 100%);
+  grid-template-columns: 150px 1fr;
+}
+
+.name-field span {
+  font-size: 14px;
+  line-height: 1.1;
 }
 
 .field input,
@@ -1153,19 +1218,23 @@ h2 {
   align-items: start;
 }
 
-.participant-photo-preview {
+.participant-photo-picker {
   grid-column: 1 / -1;
   justify-self: center;
   width: 118px;
   height: 118px;
+  position: relative;
+  display: grid;
+  place-items: center;
   overflow: hidden;
   border: 5px solid var(--yellow);
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 5px 0 rgba(3, 28, 79, 0.18);
+  cursor: pointer;
 }
 
-.participant-photo-preview img {
+.participant-photo-picker img {
   width: 100%;
   height: 100%;
   display: block;
@@ -1173,25 +1242,13 @@ h2 {
   object-position: center;
 }
 
-.participant-photo-button {
-  min-height: 44px;
-  display: grid;
-  place-items: center;
-  border: 3px solid #063064;
-  border-radius: 16px;
-  color: #062a65;
-  background: #ffffff;
-  font-weight: 1000;
-  cursor: pointer;
-  box-shadow: 0 4px 0 rgba(3, 28, 79, 0.18);
-}
-
-#participantPhotoStatus {
-  display: grid;
-  align-items: center;
-  color: #7b7f88;
-  font-weight: 900;
-  text-align: center;
+.participant-photo-picker .edit-badge {
+  width: 42px;
+  height: 42px;
+  right: -10px;
+  top: 12px;
+  border-width: 4px;
+  font-size: 26px;
 }
 
 .participant-creator .blue-button {
@@ -1607,8 +1664,9 @@ h2 {
   object-position: 50% 18%;
 }
 
-.rank-award.medal-fourth img {
-  object-position: 78% 50%;
+.rank-award.silver-medal img,
+.rank-award.bronze-medal img {
+  object-position: center;
 }
 
 .rank-award.gold {
@@ -1623,8 +1681,12 @@ h2 {
   background: #d99245;
 }
 
-.rank-award.medal-fourth {
-  background: #9edbe4;
+.rank-award.silver-medal {
+  background: #dfe8ef;
+}
+
+.rank-award.bronze-medal {
+  background: #d99245;
 }
 
 .remaining-ranking {
@@ -1862,6 +1924,12 @@ h2 {
   .participant-creator,
   .chat-form {
     grid-template-columns: 1fr;
+  }
+
+  .name-field,
+  .participant-creator .field {
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
 
   .invite-box.is-active {
