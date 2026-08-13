@@ -1347,7 +1347,9 @@ function renderRoomEntry() {
 function renderQueue() {
   const list = $("#queueList");
   list.innerHTML = "";
-  const performers = students();
+  const performers = app.displayMode
+    ? students().sort((a, b) => average(b.id) - average(a.id) || a.joinedAt - b.joinedAt)
+    : students();
 
   if (!performers.length) {
     renderEmpty(list);
@@ -1355,10 +1357,12 @@ function renderQueue() {
   }
 
   performers.forEach((student, index) => {
-    const state = index === app.room.currentIndex ? "apresentando" : index < app.room.currentIndex ? "concluido" : "aguardando";
+    const queueIndex = app.room.queue.indexOf(student.id);
+    const state = queueIndex === app.room.currentIndex ? "apresentando" : queueIndex < app.room.currentIndex ? "concluido" : "aguardando";
     const points = average(student.id).toFixed(1);
     const publicScore = audienceApproval(student.id);
-    list.append(personLine(student, `${points}/40 pts - ${state} - ${publicScore.label}`, {
+    const prefix = app.displayMode ? `${index + 1} lugar - ` : "";
+    list.append(personLine(student, `${prefix}${points}/40 pts - ${state} - ${publicScore.label}`, {
       removable: canRemoveParticipant(student)
     }));
   });
@@ -1640,7 +1644,7 @@ function renderStage() {
   const live = app.room.status !== "finished";
   const ownerControlsActive = isRoomOwner() && live;
   const canSeeRoomCode = isRoomOwner();
-  $("#currentCode").textContent = canSeeRoomCode ? app.room.code : "Privado";
+  $("#currentCode").textContent = app.displayMode ? "PLACAR" : canSeeRoomCode ? app.room.code : "Privado";
   $("#inviteCode").textContent = canSeeRoomCode ? app.room.code : "QR Code";
   $("#copyCode").style.display = canSeeRoomCode ? "inline-grid" : "none";
   $("#inviteText").style.display = canSeeRoomCode ? "block" : "none";
