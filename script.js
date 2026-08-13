@@ -155,6 +155,7 @@ let activeMediaAudio = null;
 let activeMediaTimers = [];
 let lastStageEffectIndex = -1;
 let lastStagePerformerId = null;
+let lastStageSoundEventId = "";
 let lastJoinSoundEventId = "";
 let pendingParticipantPhoto = "";
 
@@ -396,23 +397,6 @@ function playActionSound() {
   playTone(1040, 0.08, 0.12, "triangle", 0.08);
 }
 
-function playAdvanceSound() {
-  if (!STAGE_EFFECT_FILES.length) {
-    playTone(392, 0, 0.08, "square", 0.05);
-    playTone(523, 0.08, 0.08, "square", 0.05);
-    playTone(784, 0.16, 0.16, "triangle", 0.08);
-    return;
-  }
-
-  let index = Math.floor(Math.random() * STAGE_EFFECT_FILES.length);
-  if (STAGE_EFFECT_FILES.length > 1 && index === lastStageEffectIndex) {
-    index = (index + 1) % STAGE_EFFECT_FILES.length;
-  }
-
-  lastStageEffectIndex = index;
-  playAudioFile(STAGE_EFFECT_FILES[index], 0.82, 6);
-}
-
 function playFinishSound() {
   playGoodVoteSound();
   playTone(523, 0.08, 0.16, "triangle", 0.08);
@@ -478,6 +462,25 @@ function playSharedJoinSound(room, allowFirstPlay = false) {
   if (canPlay) playAudioFile(event.sound, 0.78, 6);
 }
 
+function randomStageSound() {
+  if (!STAGE_EFFECT_FILES.length) return "";
+  let index = Math.floor(Math.random() * STAGE_EFFECT_FILES.length);
+  if (STAGE_EFFECT_FILES.length > 1 && index === lastStageEffectIndex) {
+    index = (index + 1) % STAGE_EFFECT_FILES.length;
+  }
+
+  lastStageEffectIndex = index;
+  return STAGE_EFFECT_FILES[index];
+}
+
+function playSharedStageSound(room) {
+  const event = room && room.stageSoundEvent;
+  if (!event || !event.id || !event.sound || event.id === lastStageSoundEventId) return;
+
+  lastStageSoundEventId = event.id;
+  playAudioFile(event.sound, 0.82, 6);
+}
+
 function animatePerformerEntrance() {
   const board = $(".photo-board");
   if (!board) return;
@@ -496,7 +499,7 @@ function announcePerformerChange(performer) {
   lastStagePerformerId = performerId;
 
   if (!changed || !app.room || app.room.status === "finished") return;
-  playAdvanceSound();
+  playSharedStageSound(app.room);
   animatePerformerEntrance();
 }
 
@@ -824,9 +827,7 @@ function students(room = app.room) {
 }
 
 function roomOwnerId(room = app.room) {
-  if (room && room.ownerId) return room.ownerId;
-  const firstTeacher = teachers(room).sort((a, b) => a.joinedAt - b.joinedAt)[0];
-  return (firstTeacher && firstTeacher.id) || "";
+  return (room && room.ownerId) || "";
 }
 
 function isRoomOwner(room = app.room) {
@@ -1058,6 +1059,12 @@ async function advanceRoom(room) {
   if (room.currentIndex < room.queue.length - 1) {
     room.currentIndex += 1;
     const next = currentStudent(room);
+    room.stageSoundEvent = {
+      id: makeId(),
+      participantId: (next && next.id) || "",
+      sound: randomStageSound(),
+      at: Date.now()
+    };
     addEvent(room, `${(next && next.name) || "Proximo participante"} subiu ao palco.`);
   } else {
     room.status = "finished";

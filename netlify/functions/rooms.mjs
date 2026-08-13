@@ -207,6 +207,7 @@ function sanitizeRoom(room = {}) {
     nextVotes: sanitizeNested(room.nextVotes),
     audienceVotes: sanitizeNested(room.audienceVotes),
     joinSoundEvent: sanitizeJoinSoundEvent(room.joinSoundEvent),
+    stageSoundEvent: sanitizeJoinSoundEvent(room.stageSoundEvent),
     events: sanitizeEvents(room.events),
     createdAt: Number(room.createdAt || Date.now()),
     lastActivityAt: Number(room.lastActivityAt || room.updatedAt || room.createdAt || Date.now()),
@@ -332,6 +333,9 @@ function mergeRoom(existing, incoming) {
   const joinSoundEvent = Number(safeIncoming.joinSoundEvent?.at || 0) >= Number(safeExisting.joinSoundEvent?.at || 0)
     ? safeIncoming.joinSoundEvent
     : safeExisting.joinSoundEvent;
+  const stageSoundEvent = Number(safeIncoming.stageSoundEvent?.at || 0) >= Number(safeExisting.stageSoundEvent?.at || 0)
+    ? safeIncoming.stageSoundEvent
+    : safeExisting.stageSoundEvent;
   const ownerLeft = participantDeleteIds.includes(safeExisting.ownerId);
 
   return {
@@ -352,6 +356,7 @@ function mergeRoom(existing, incoming) {
     audienceVotes: withoutRemovedNested(audienceVotes, participantDeleteIds),
     nextVotes: withoutRemovedNested(nextVotes, participantDeleteIds),
     joinSoundEvent,
+    stageSoundEvent,
     events: newRound ? (safeIncoming.events || []) : mergeEvents(safeExisting.events, safeIncoming.events)
   };
 }

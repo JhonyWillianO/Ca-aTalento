@@ -78,7 +78,7 @@ button:disabled {
 
 .game-header {
   width: min(1230px, calc(100% - 36px));
-  min-height: 92px;
+  min-height: 128px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -87,8 +87,8 @@ button:disabled {
 }
 
 .app-logo {
-  width: clamp(140px, 16vw, 220px);
-  height: clamp(105px, 12vw, 170px);
+  width: clamp(180px, 19vw, 280px);
+  height: clamp(130px, 14vw, 205px);
   background: url("./Projeto%20Ca%C3%A7a%20Talentos_%20Estrela%20do%20Sucesso.png") center / contain no-repeat;
   color: var(--blue-deep);
   font-size: clamp(26px, 4vw, 44px);
@@ -1043,7 +1043,7 @@ h2 {
 }
 
 .bottom-panels.has-admin {
-  grid-template-columns: minmax(320px, 0.9fr) minmax(320px, 1fr) 330px;
+  grid-template-columns: minmax(390px, 1.08fr) minmax(330px, 1fr) minmax(330px, 0.92fr);
 }
 
 .participant-admin-box,
@@ -1051,7 +1051,7 @@ h2 {
 .log-box {
   min-height: 245px;
   position: relative;
-  padding: 34px 24px 18px;
+  padding: 40px 28px 22px;
 }
 
 .participant-admin-box {
@@ -1096,8 +1096,8 @@ h2 {
 .participant-creator {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 16px;
+  gap: 14px;
+  padding: 18px;
   border: 2px solid rgba(220, 174, 49, 0.55);
   border-radius: 10px;
   background: #fffdf4;
@@ -1114,7 +1114,7 @@ h2 {
 .participant-creator .field {
   grid-column: 1 / -1;
   width: 100%;
-  grid-template-columns: 72px 1fr;
+  grid-template-columns: 82px 1fr;
 }
 
 .participant-photo-button {
@@ -1749,7 +1749,7 @@ h2 {
   .game-header {
     height: auto;
     padding: 16px 0;
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .header-profile {
