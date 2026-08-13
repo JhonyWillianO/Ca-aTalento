@@ -129,6 +129,15 @@ const STAGE_EFFECT_FILES = [
   "./efeitos%20sonoros/zoeira-efeito-roblox-morre.mp3"
 ];
 
+const JOIN_SOUND_FILES = [
+  "./efeitos%20sonoros/ai-gostei-rodrigo-faro.mp3",
+  "./efeitos%20sonoros/aiaiai-rodrigo-faro.mp3",
+  "./efeitos%20sonoros/efeito-ring.mp3",
+  "./efeitos%20sonoros/olha-la-rodrigo-faro.mp3",
+  "./efeitos%20sonoros/uou-efeito-sonoro.mp3",
+  "./efeitos%20sonoros/zoeira-efeito-brinquedo-de-borracha.mp3"
+];
+
 let scannerStream = null;
 let scannerTimer = null;
 const USE_REMOTE_STORAGE = location.protocol.startsWith("http");
@@ -146,6 +155,7 @@ let activeMediaAudio = null;
 let activeMediaTimers = [];
 let lastStageEffectIndex = -1;
 let lastStagePerformerId = null;
+let lastJoinSoundEventId = "";
 let pendingParticipantPhoto = "";
 
 function cleanText(value = "", maxLength = 80) {
@@ -454,6 +464,20 @@ function playAudienceVoteSound(vote) {
   if (vote === "great") playGreatVoteSound();
 }
 
+function randomJoinSound() {
+  if (!JOIN_SOUND_FILES.length) return "";
+  return JOIN_SOUND_FILES[Math.floor(Math.random() * JOIN_SOUND_FILES.length)];
+}
+
+function playSharedJoinSound(room, allowFirstPlay = false) {
+  const event = room && room.joinSoundEvent;
+  if (!event || !event.id || !event.sound || event.id === lastJoinSoundEventId) return;
+
+  const canPlay = allowFirstPlay || knownParticipantIds.size > 0;
+  lastJoinSoundEventId = event.id;
+  if (canPlay) playAudioFile(event.sound, 0.78, 6);
+}
+
 function animatePerformerEntrance() {
   const board = $(".photo-board");
   if (!board) return;
@@ -478,9 +502,13 @@ function announcePerformerChange(performer) {
 
 function syncParticipantJoinSounds(room, playSound = true) {
   const ids = new Set(Object.keys((room && room.participants) || {}));
-  const hasNewRemotePerson = [...ids].some((id) => !knownParticipantIds.has(id) && id !== app.profile.id);
 
-  if (playSound && knownParticipantIds.size > 0 && hasNewRemotePerson) playJoinSound();
+  if (playSound) {
+    playSharedJoinSound(room);
+  } else if (room && room.joinSoundEvent && room.joinSoundEvent.id && !lastJoinSoundEventId) {
+    lastJoinSoundEventId = room.joinSoundEvent.id;
+  }
+
   knownParticipantIds = ids;
 }
 
@@ -720,7 +748,17 @@ function upsertParticipant(room) {
     lastSeenAt: Date.now()
   };
 
-  if (!previous) addEvent(room, `${app.profile.name} entrou como ${roleLabel(app.profile.role)}.`);
+  if (!previous) {
+    addEvent(room, `${app.profile.name} entrou como ${roleLabel(app.profile.role)}.`);
+    if (app.profile.role === "viewer") {
+      room.joinSoundEvent = {
+        id: makeId(),
+        participantId: app.profile.id,
+        sound: randomJoinSound(),
+        at: Date.now()
+      };
+    }
+  }
   return !previous;
 }
 
@@ -755,7 +793,8 @@ async function joinRoom(code, shouldCreate = false) {
   app.pendingInviteRoom = "";
   saveProfile();
   await saveRoom(room);
-  if (enteredNow) playJoinSound();
+  if (enteredNow && app.profile.role === "viewer") playSharedJoinSound(app.room, true);
+  if (enteredNow && app.profile.role !== "viewer") playJoinSound();
   syncParticipantJoinSounds(app.room, false);
   render();
   showScreen(room.status === "finished" ? "scoreboard" : "stage");
@@ -1450,23 +1489,25 @@ function renderStage() {
   if (scoreboardRevealKey && app.room.status !== "finished") stopScoreboardReveal();
 
   const performer = currentStudent();
-  $("#currentCode").textContent = app.room.code;
-  $("#inviteCode").textContent = app.room.code;
+  const live = app.room.status !== "finished";
+  const ownerControlsActive = isRoomOwner() && live;
+  const canSeeRoomCode = isRoomOwner();
+  $("#currentCode").textContent = canSeeRoomCode ? app.room.code : "Privado";
+  $("#inviteCode").textContent = canSeeRoomCode ? app.room.code : "QR Code";
+  $("#copyCode").style.display = canSeeRoomCode ? "inline-grid" : "none";
   $("#stageTitle").textContent = app.room.status === "finished" ? "ENCERRADO" : "PALCO";
   $("#performerName").textContent = (performer && performer.name) || "Aguardando participante";
   $("#performerPhoto").src = performer ? avatarFor(performer) : defaultAvatar("student");
   $("#teacherCurrentStudent").textContent = performer ? `Apresentando: ${performer.name}` : "Apresentando: aguardando participante";
   announcePerformerChange(performer);
 
-  const live = app.room.status !== "finished";
-  const ownerControlsActive = isRoomOwner() && live;
   $("#teacherPanel").classList.toggle("is-active", app.profile.role === "teacher" && live);
   $("#viewerPanel").classList.toggle("is-active", app.profile.role === "viewer" && live);
   $("#finishRoom").classList.toggle("is-active", ownerControlsActive);
-  $("#inviteBox").classList.toggle("is-active", app.profile.role === "teacher" && live);
+  $("#inviteBox").classList.toggle("is-active", (app.profile.role === "teacher" || app.profile.role === "viewer") && live);
   $("#participantAdmin").classList.toggle("is-active", ownerControlsActive);
   $(".bottom-panels").classList.toggle("has-admin", ownerControlsActive);
-  if (app.profile.role === "teacher" && live) renderQrCode(app.room.code);
+  if ((app.profile.role === "teacher" || app.profile.role === "viewer") && live) renderQrCode(app.room.code);
 
   const alreadyScored = performer ? teacherScoredStudent(performer.id) : false;
   const voteStatus = performer ? teacherVoteStatus(performer.id) : { votedCount: 0, total: 0, complete: false };
@@ -1759,6 +1800,7 @@ $$("[data-public-vote]").forEach((button) => {
 });
 
 $("#copyCode").addEventListener("click", async () => {
+  if (!isRoomOwner()) return;
   try {
     await navigator.clipboard.writeText(app.room.code);
   } catch {

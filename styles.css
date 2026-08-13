@@ -1078,6 +1078,13 @@ h2 {
   animation: badgePop 2.8s ease-in-out infinite;
 }
 
+.box-label.wide-label {
+  min-width: min(90%, 250px);
+  padding: 0 12px;
+  font-size: 16px;
+  text-align: center;
+}
+
 .teacher-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

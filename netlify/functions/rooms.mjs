@@ -169,6 +169,20 @@ function sanitizeNested(values = {}) {
   return cleaned;
 }
 
+function sanitizeJoinSoundEvent(event = {}) {
+  if (!event || typeof event !== "object") return null;
+  const id = cleanId(event.id);
+  const sound = cleanText(event.sound, 180);
+  if (!id || !sound) return null;
+
+  return {
+    id,
+    participantId: cleanId(event.participantId),
+    sound,
+    at: Number(event.at || Date.now())
+  };
+}
+
 function sanitizeRoom(room = {}) {
   const participants = sanitizeParticipants(room.participants);
   const participantIds = new Set(Object.keys(participants));
@@ -192,6 +206,7 @@ function sanitizeRoom(room = {}) {
     scores: sanitizeNested(room.scores),
     nextVotes: sanitizeNested(room.nextVotes),
     audienceVotes: sanitizeNested(room.audienceVotes),
+    joinSoundEvent: sanitizeJoinSoundEvent(room.joinSoundEvent),
     events: sanitizeEvents(room.events),
     createdAt: Number(room.createdAt || Date.now()),
     lastActivityAt: Number(room.lastActivityAt || room.updatedAt || room.createdAt || Date.now()),
@@ -314,6 +329,9 @@ function mergeRoom(existing, incoming) {
   const scores = newRound ? (safeIncoming.scores || {}) : mergeNested(safeExisting.scores, safeIncoming.scores);
   const audienceVotes = newRound ? (safeIncoming.audienceVotes || {}) : mergeNested(safeExisting.audienceVotes, safeIncoming.audienceVotes);
   const nextVotes = newRound ? (safeIncoming.nextVotes || {}) : mergeNested(safeExisting.nextVotes, safeIncoming.nextVotes);
+  const joinSoundEvent = Number(safeIncoming.joinSoundEvent?.at || 0) >= Number(safeExisting.joinSoundEvent?.at || 0)
+    ? safeIncoming.joinSoundEvent
+    : safeExisting.joinSoundEvent;
   const ownerLeft = participantDeleteIds.includes(safeExisting.ownerId);
 
   return {
@@ -333,6 +351,7 @@ function mergeRoom(existing, incoming) {
     scores: withoutRemovedNested(scores, participantDeleteIds),
     audienceVotes: withoutRemovedNested(audienceVotes, participantDeleteIds),
     nextVotes: withoutRemovedNested(nextVotes, participantDeleteIds),
+    joinSoundEvent,
     events: newRound ? (safeIncoming.events || []) : mergeEvents(safeExisting.events, safeIncoming.events)
   };
 }
