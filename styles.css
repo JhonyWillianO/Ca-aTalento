@@ -27,11 +27,13 @@ body {
   font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
   -webkit-text-size-adjust: 100%;
   color: var(--ink);
-  background-color: #f4f7ee;
+  background-color: #13072b;
   background-image:
-    radial-gradient(circle at 14% 12%, rgba(220, 174, 49, 0.22), transparent 28%),
-    linear-gradient(135deg, rgba(10, 111, 134, 0.12), transparent 38%),
-    linear-gradient(180deg, #ffffff 0%, #edf7f2 100%);
+    radial-gradient(circle at 50% 42%, rgba(255, 179, 45, 0.24), transparent 8%),
+    radial-gradient(circle at 18% 20%, rgba(255, 31, 197, 0.28), transparent 13%),
+    radial-gradient(circle at 82% 18%, rgba(0, 157, 255, 0.32), transparent 14%),
+    radial-gradient(circle at 80% 72%, rgba(255, 139, 15, 0.24), transparent 16%),
+    linear-gradient(180deg, #080118 0%, #16072e 48%, #0f1832 100%);
 }
 
 body::before,
@@ -45,22 +47,27 @@ body::after {
 
 body::before {
   background:
-    linear-gradient(104deg, transparent 0 28%, rgba(220, 174, 49, 0.2) 33%, transparent 39% 100%),
-    linear-gradient(252deg, transparent 0 36%, rgba(10, 111, 134, 0.16) 42%, transparent 48% 100%),
-    repeating-linear-gradient(90deg, transparent 0 72px, rgba(220, 174, 49, 0.08) 73px 75px, transparent 76px 150px);
-  opacity: 0.8;
+    linear-gradient(115deg, transparent 0 17%, rgba(255, 146, 0, 0.62) 19%, rgba(255, 146, 0, 0.06) 23%, transparent 31% 100%),
+    linear-gradient(65deg, transparent 0 18%, rgba(255, 28, 202, 0.46) 21%, rgba(255, 28, 202, 0.06) 26%, transparent 34% 100%),
+    linear-gradient(248deg, transparent 0 22%, rgba(0, 138, 255, 0.54) 25%, rgba(0, 138, 255, 0.06) 29%, transparent 38% 100%),
+    linear-gradient(292deg, transparent 0 16%, rgba(118, 255, 45, 0.35) 18%, rgba(118, 255, 45, 0.05) 22%, transparent 31% 100%);
+  mix-blend-mode: screen;
+  opacity: 0.66;
   transform-origin: 50% 0;
-  animation: showLights 9s ease-in-out infinite alternate;
+  animation: showLights 8s ease-in-out infinite alternate;
 }
 
 body::after {
   background:
-    radial-gradient(circle at 12% 18%, rgba(220, 174, 49, 0.34) 0 2px, transparent 3px),
-    radial-gradient(circle at 82% 22%, rgba(10, 111, 134, 0.24) 0 2px, transparent 3px),
-    radial-gradient(circle at 74% 78%, rgba(106, 173, 58, 0.24) 0 2px, transparent 3px);
-  background-size: 220px 180px, 260px 220px, 300px 240px;
-  opacity: 0.65;
-  animation: sparkleDrift 14s linear infinite;
+    radial-gradient(circle at 14% 16%, rgba(255, 223, 88, 0.95) 0 2px, transparent 3px),
+    radial-gradient(circle at 36% 8%, rgba(255, 84, 210, 0.9) 0 2px, transparent 3px),
+    radial-gradient(circle at 66% 18%, rgba(80, 190, 255, 0.95) 0 2px, transparent 3px),
+    radial-gradient(circle at 84% 44%, rgba(255, 161, 31, 0.92) 0 2px, transparent 3px),
+    radial-gradient(circle at 22% 72%, rgba(123, 255, 69, 0.86) 0 2px, transparent 3px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.74) 0 1px, transparent 2px);
+  background-size: 190px 150px, 230px 180px, 260px 210px, 300px 240px, 340px 260px, 90px 90px;
+  opacity: 0.72;
+  animation: sparkleDrift 16s linear infinite;
 }
 
 button,
@@ -1226,7 +1233,6 @@ h2 {
   position: relative;
   display: grid;
   place-items: center;
-  overflow: hidden;
   border: 5px solid var(--yellow);
   border-radius: 50%;
   background: #ffffff;
@@ -1238,6 +1244,7 @@ h2 {
   width: 100%;
   height: 100%;
   display: block;
+  border-radius: 50%;
   object-fit: cover;
   object-position: center;
 }
@@ -1245,7 +1252,7 @@ h2 {
 .participant-photo-picker .edit-badge {
   width: 42px;
   height: 42px;
-  right: -10px;
+  right: -24px;
   top: 12px;
   border-width: 4px;
   font-size: 26px;
