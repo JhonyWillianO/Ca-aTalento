@@ -33,7 +33,7 @@ const app = {
     id: savedProfile.id || makeId(),
     name: savedProfile.name || "",
     photo: savedProfile.photo || "",
-    role: savedProfile.role || "student",
+    role: savedProfile.role === "student" ? "teacher" : savedProfile.role || "teacher",
     roomCode: savedProfile.roomCode || ""
   },
   room: null,
@@ -60,8 +60,8 @@ const CRITERIA = [
 ];
 
 const PUBLIC_VOTES = {
-  bad: { label: "Ruim", value: 0 },
-  good: { label: "Bom", value: 70 },
+  bad: { label: "Bom", value: 60 },
+  good: { label: "Amei", value: 85 },
   great: { label: "Maravilhoso", value: 100 }
 };
 
@@ -102,7 +102,7 @@ const SOUND_FILES = {
   fanfare: "./u_ss015dykrt-brass-fanfare-with-timpani-and-winchimes-reverberated-146260.mp3",
   victory: "./u_it78ck90s3-orchestral-win-331233.mp3",
   defeat: "./coghezzi-game-over-orchestral-stinger-cartoon-defeat-546515.mp3",
-  voteBad: "./freesound_community-boo-6377.mp3",
+  voteBad: "./freesound_community-goodresult-82807.mp3",
   voteGood: "./freesound_community-palmas-maesaif-14571.mp3",
   voteGreat: "./driken5482-applause-cheer-236786.mp3"
 };
@@ -146,6 +146,7 @@ let activeMediaAudio = null;
 let activeMediaTimers = [];
 let lastStageEffectIndex = -1;
 let lastStagePerformerId = null;
+let pendingParticipantPhoto = "";
 
 function cleanText(value = "", maxLength = 80) {
   return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
@@ -258,7 +259,7 @@ function showNotice(message, title = "Aviso", type = "info") {
   }, 4200);
 }
 
-function askConfirm(message, title = "Confirmar") {
+function askConfirm(message, title = "Confirmar", options = {}) {
   const layer = ensureNoticeLayer();
   const panel = $("#confirmPanel");
   const ok = $("#confirmOk");
@@ -266,6 +267,8 @@ function askConfirm(message, title = "Confirmar") {
 
   $("#confirmTitle").textContent = title;
   $("#confirmMessage").textContent = message;
+  ok.textContent = options.okText || "CONFIRMAR";
+  cancel.textContent = options.cancelText || "CANCELAR";
   layer.classList.add("is-confirming");
   panel.classList.add("is-active");
   playActionSound();
@@ -274,6 +277,8 @@ function askConfirm(message, title = "Confirmar") {
     const finish = (answer) => {
       panel.classList.remove("is-active");
       layer.classList.remove("is-confirming");
+      ok.textContent = "CONFIRMAR";
+      cancel.textContent = "CANCELAR";
       ok.removeEventListener("click", onOk);
       cancel.removeEventListener("click", onCancel);
       resolve(answer);
@@ -500,7 +505,7 @@ function saveProfile() {
 }
 
 function defaultAvatar(role) {
-  const label = role === "teacher" ? "P" : role === "viewer" ? "C" : "A";
+  const label = role === "teacher" ? "J" : role === "viewer" ? "C" : "P";
   const primary = role === "teacher" ? "#12844f" : role === "viewer" ? "#7b5eea" : "#0b78f0";
 
   return `data:image/svg+xml,${encodeURIComponent(`
@@ -666,7 +671,7 @@ function profileReady() {
 }
 
 function randomName() {
-  const roleName = app.profile.role === "teacher" ? "Professor" : app.profile.role === "viewer" ? "Convidado" : "Aluno";
+  const roleName = app.profile.role === "teacher" ? "Jurado" : app.profile.role === "viewer" ? "Convidado" : "Participante";
   return `${roleName}${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
@@ -721,9 +726,9 @@ function upsertParticipant(room) {
 }
 
 function roleLabel(role) {
-  if (role === "teacher") return "professor";
+  if (role === "teacher") return "jurado";
   if (role === "viewer") return "convidado";
-  if (role === "student") return "aluno";
+  if (role === "student") return "participante";
   return "visitante";
 }
 
@@ -741,15 +746,11 @@ async function joinRoom(code, shouldCreate = false) {
   if (!room && shouldCreate) room = createRoom(cleanCode);
 
   if (!room) {
-    showNotice("Sala nao encontrada. Confira o codigo ou peça um novo codigo ao professor.", "Sala indisponivel", "warning");
+    showNotice("Sala nao encontrada. Confira o codigo ou peca um novo codigo ao dono da sala.", "Sala indisponivel", "warning");
     return;
   }
 
   const enteredNow = upsertParticipant(room);
-  if (app.profile.role === "student" && !room.queue.includes(app.profile.id)) {
-    room.queue.push(app.profile.id);
-  }
-
   app.profile.roomCode = cleanCode;
   app.selectedRoom = cleanCode;
   app.pendingInviteRoom = "";
@@ -807,7 +808,7 @@ function resetRoomForNewRound(room) {
     .filter((person) => person.role === "student")
     .sort((a, b) => a.joinedAt - b.joinedAt)
     .map((person) => person.id);
-  addEvent(room, "O professor recomecou o show.");
+  addEvent(room, "O dono da sala recomecou o show.");
 }
 
 function studentScores(studentId, room = app.room) {
@@ -972,13 +973,13 @@ function removeParticipantFromRoom(room, participantId) {
   }
 
   removeParticipantRecords(room, participantId);
-  addEvent(room, `${participant.name} foi removido da sala pelo organizador.`);
+  addEvent(room, `${participant.name} foi removido da sala pelo dono.`);
   return true;
 }
 
 async function leaveCurrentRoom() {
   if (!app.room || !app.room.code) {
-    showScreen("room");
+    showScreen("welcome");
     return;
   }
 
@@ -1008,9 +1009,10 @@ async function leaveCurrentRoom() {
   saveProfile();
   knownParticipantIds = new Set();
   $("#roomInput").value = "";
+  $("#quickRoomInput").value = "";
   $("#selectedRoomLabel").textContent = "---";
   showNotice("Voce saiu da sala.", "Sala", "info");
-  showScreen("room");
+  showScreen("welcome");
 }
 
 async function advanceRoom(room) {
@@ -1018,7 +1020,7 @@ async function advanceRoom(room) {
   if (room.currentIndex < room.queue.length - 1) {
     room.currentIndex += 1;
     const next = currentStudent(room);
-    addEvent(room, `${(next && next.name) || "Proximo aluno"} subiu ao palco.`);
+    addEvent(room, `${(next && next.name) || "Proximo participante"} subiu ao palco.`);
   } else {
     room.status = "finished";
     addEvent(room, "Show finalizado. Placar liberado.");
@@ -1035,15 +1037,15 @@ async function syncActiveRoom() {
     app.profile.roomCode = "";
     saveProfile();
     showNotice("Esta sala foi fechada pelo organizador ou ficou inativa por muito tempo.", "Sala encerrada", "warning");
-    showScreen("room");
+    showScreen("welcome");
     return;
   }
 
   if (latest.participants && !latest.participants[app.profile.id]) {
     app.room = null;
     app.profile.roomCode = "";
-    showNotice("Voce foi removido da sala pelo professor organizador.", "Participante removido", "danger");
-    showScreen("room");
+    showNotice("Voce foi removido da sala pelo dono da sala.", "Participante removido", "danger");
+    showScreen("welcome");
     return;
   }
 
@@ -1127,7 +1129,7 @@ async function renderRooms() {
     card.innerHTML = `
       <div class="room-icon">${room.code.slice(0, 1)}</div>
       <strong>Show #${room.code}</strong>
-      <div class="room-stats"><span>${peopleCount} online</span><span>${studentCount} alunos</span></div>
+      <div class="room-stats"><span>${peopleCount} online</span><span>${studentCount} participantes</span></div>
     `;
     card.addEventListener("click", () => {
       app.selectedRoom = room.code;
@@ -1143,12 +1145,12 @@ function renderRoomEntry() {
   stopScanner();
   const isTeacher = app.profile.role === "teacher";
   const isViewer = app.profile.role === "viewer";
-  $("#roomScreenTitle").textContent = isTeacher ? "SALA DO PROFESSOR" : isViewer ? "ENTRADA DOS CONVIDADOS" : "ENTRADA DO ALUNO";
+  $("#roomScreenTitle").textContent = isTeacher ? "SALA DO JURADO" : isViewer ? "ENTRADA DOS CONVIDADOS" : "PARTICIPANTES";
   $("#roomHelp").textContent = isTeacher
-    ? "Crie uma sala nova, digite um codigo existente ou use o scanner de QR Code."
+    ? "Crie uma sala nova ou digite um codigo existente para entrar como jurado."
     : isViewer
       ? "Digite o codigo da sala ou use o scanner de QR Code."
-      : "Aluno entra com o codigo enviado pelo professor ou pelo scanner de QR Code.";
+      : "Participantes sao cadastrados pelo dono da sala.";
 
   $("#createRoom").style.display = isTeacher ? "inline-block" : "none";
   $("#roomGrid").style.display = isTeacher ? "grid" : "none";
@@ -1370,7 +1372,7 @@ function renderScoreboard() {
   if (!isNewReveal && scoreboardRevealComplete && scoreboardDomKey === revealKey && podium.children.length) {
     const owner = isRoomOwner();
     $("#finishActions").style.display = owner ? "grid" : "none";
-    $("#waitingHost").textContent = "Aguardando o professor organizador iniciar outra rodada.";
+    $("#waitingHost").textContent = "Aguardando o dono da sala iniciar outra rodada.";
     $("#waitingHost").classList.toggle("is-active", !owner);
     return;
   }
@@ -1415,7 +1417,7 @@ function renderScoreboard() {
   renderRemainingRanking(ranking, scoreboardRevealComplete);
   const owner = isRoomOwner();
   $("#finishActions").style.display = owner ? "grid" : "none";
-  $("#waitingHost").textContent = "Aguardando o professor organizador iniciar outra rodada.";
+  $("#waitingHost").textContent = "Aguardando o dono da sala iniciar outra rodada.";
   $("#waitingHost").classList.toggle("is-active", !owner);
   renderPublicSummary();
   if (scoreboardRevealComplete) scoreboardDomKey = revealKey;
@@ -1452,28 +1454,18 @@ function renderStage() {
   $("#currentCode").textContent = app.room.code;
   $("#inviteCode").textContent = app.room.code;
   $("#stageTitle").textContent = app.room.status === "finished" ? "ENCERRADO" : "PALCO";
-  $("#performerName").textContent = (performer && performer.name) || "Aguardando aluno";
+  $("#performerName").textContent = (performer && performer.name) || "Aguardando participante";
   $("#performerPhoto").src = performer ? avatarFor(performer) : defaultAvatar("student");
-  $("#teacherCurrentStudent").textContent = performer ? `Apresentando: ${performer.name}` : "Apresentando: aguardando aluno";
+  $("#teacherCurrentStudent").textContent = performer ? `Apresentando: ${performer.name}` : "Apresentando: aguardando participante";
   announcePerformerChange(performer);
 
   const live = app.room.status !== "finished";
   $("#teacherPanel").classList.toggle("is-active", app.profile.role === "teacher" && live);
-  $("#studentPanel").classList.toggle("is-active", app.profile.role === "student" && live);
   $("#viewerPanel").classList.toggle("is-active", app.profile.role === "viewer" && live);
   $("#finishRoom").classList.toggle("is-active", isRoomOwner() && live);
   $("#inviteBox").classList.toggle("is-active", app.profile.role === "teacher" && live);
+  $("#participantForm").classList.toggle("is-active", isRoomOwner() && live);
   if (app.profile.role === "teacher" && live) renderQrCode(app.room.code);
-
-  const isInQueue = app.room.queue.includes(app.profile.id);
-  const isCurrent = performer && performer.id === app.profile.id;
-  $("#joinQueue").disabled = isInQueue;
-  $("#joinQueue").textContent = isInQueue ? "NA FILA" : "ENTRAR NA FILA";
-  $("#studentMessage").textContent = isCurrent
-    ? "Sua vez de apresentar. Boa apresentacao!"
-    : isInQueue
-      ? "Voce esta na fila. Aguarde sua chamada."
-      : "Entre na fila e aguarde sua vez.";
 
   const alreadyScored = performer ? teacherScoredStudent(performer.id) : false;
   const voteStatus = performer ? teacherVoteStatus(performer.id) : { votedCount: 0, total: 0, complete: false };
@@ -1484,9 +1476,9 @@ function renderStage() {
   $("#sendScore").textContent = alreadyScored ? "NOTA ENVIADA" : "DAR NOTA";
   $("#nextStudent").disabled = !performer || !voteStatus.complete || alreadyConfirmedNext;
   $("#nextStudent").title = !voteStatus.complete
-    ? `Aguardando notas dos professores: ${voteStatus.votedCount}/${voteStatus.total}`
+    ? `Aguardando notas dos jurados: ${voteStatus.votedCount}/${voteStatus.total}`
     : alreadyConfirmedNext
-      ? `Aguardando confirmacao dos professores: ${nextStatus.confirmedCount}/${nextStatus.total}`
+      ? `Aguardando confirmacao dos jurados: ${nextStatus.confirmedCount}/${nextStatus.total}`
       : "";
   $("#nextStudent").textContent = alreadyConfirmedNext
     ? `AGUARDANDO ${nextStatus.confirmedCount}/${nextStatus.total}`
@@ -1618,14 +1610,36 @@ $$("[data-role]").forEach((button) => {
   });
 });
 
-$("#openRooms").addEventListener("click", () => {
-  if (!profileReady()) return;
-  if (app.pendingInviteRoom) {
-    joinRoom(app.pendingInviteRoom, false);
-    return;
-  }
+function prepareQuickCodeInput(value) {
+  const code = normalizeCode(value);
+  $("#quickRoomInput").value = code;
+  $("#roomInput").value = code;
+  $("#selectedRoomLabel").textContent = code || "---";
+  app.selectedRoom = code;
+  return code;
+}
 
-  showScreen("room");
+$("#quickRoomInput").addEventListener("input", (event) => {
+  app.pendingInviteRoom = "";
+  $("#joinAsJudge").textContent = "Entrar com codigo";
+  prepareQuickCodeInput(event.target.value);
+});
+
+$("#createRoomNow").addEventListener("click", async () => {
+  app.profile.role = "teacher";
+  app.pendingInviteRoom = "";
+  $("#joinAsJudge").textContent = "Entrar com codigo";
+  if (!profileReady()) return;
+  const code = await createUniqueRoomCode();
+  prepareQuickCodeInput(code);
+  await joinRoom(code, true);
+});
+
+$("#joinAsJudge").addEventListener("click", async () => {
+  const code = prepareQuickCodeInput($("#quickRoomInput").value || app.pendingInviteRoom || app.selectedRoom);
+  app.profile.role = app.pendingInviteRoom && code === app.pendingInviteRoom ? "viewer" : "teacher";
+  if (!profileReady()) return;
+  await joinRoom(code, false);
 });
 
 $("#roomInput").addEventListener("input", (event) => {
@@ -1638,7 +1652,7 @@ $("#roomInput").addEventListener("input", (event) => {
 
 $("#createRoom").addEventListener("click", async () => {
   if (app.profile.role !== "teacher") {
-    showNotice("Somente professores podem criar sala.", "Acesso de professor", "warning");
+    showNotice("Somente jurados podem criar sala.", "Acesso de jurado", "warning");
     return;
   }
   const code = await createUniqueRoomCode();
@@ -1685,7 +1699,7 @@ document.addEventListener("click", async (event) => {
 
   const room = await loadRoom(app.room.code);
   if (!room || !isRoomOwner(room)) {
-    showNotice("Somente o professor que criou a sala pode remover participantes.", "Permissao negada", "warning");
+    showNotice("Somente o dono da sala pode remover participantes.", "Permissao negada", "warning");
     return;
   }
 
@@ -1714,7 +1728,7 @@ $$("[data-public-vote]").forEach((button) => {
     room.audienceVotes[performer.id] = room.audienceVotes[performer.id] || {};
 
     if (viewerVotedStudent(performer.id, app.profile.id, room)) {
-      showNotice("Seu voto para este aluno ja foi registrado.", "Voto duplicado", "warning");
+      showNotice("Seu voto para este participante ja foi registrado.", "Voto duplicado", "warning");
       app.room = room;
       render();
       return;
@@ -1758,11 +1772,17 @@ $("#sendScore").addEventListener("click", async () => {
   if (!room) return;
   room.scores[performer.id] = room.scores[performer.id] || {};
   if (teacherScoredStudent(performer.id, app.profile.id, room)) {
-    showNotice("Voce ja deu nota para este aluno nesta rodada.", "Nota ja enviada", "warning");
+    showNotice("Voce ja deu nota para este participante nesta rodada.", "Nota ja enviada", "warning");
     app.room = room;
     render();
     return;
   }
+
+  const confirmed = await askConfirm(`Quer dar a nota de ${performer.name} agora?`, "Enviar nota", {
+    okText: "SIM",
+    cancelText: "NAO"
+  });
+  if (!confirmed) return;
 
   const score = currentCriteriaScore();
   room.scores[performer.id][app.profile.id] = score;
@@ -1784,7 +1804,7 @@ $("#nextStudent").addEventListener("click", async () => {
 
   const voteStatus = teacherVoteStatus(livePerformer.id, room);
   if (!voteStatus.complete) {
-    showNotice(`Aguardando notas dos professores: ${voteStatus.votedCount}/${voteStatus.total}`, "Ainda nao liberado", "warning");
+    showNotice(`Aguardando notas dos jurados: ${voteStatus.votedCount}/${voteStatus.total}`, "Ainda nao liberado", "warning");
     app.room = room;
     render();
     return;
@@ -1799,7 +1819,7 @@ $("#nextStudent").addEventListener("click", async () => {
     await advanceRoom(room);
   } else {
     playActionSound();
-    addEvent(room, `${app.profile.name} confirmou proximo aluno (${nextStatus.confirmedCount}/${nextStatus.total}).`);
+    addEvent(room, `${app.profile.name} confirmou proximo participante (${nextStatus.confirmedCount}/${nextStatus.total}).`);
     await saveRoom(room);
   }
 
@@ -1811,7 +1831,7 @@ $("#finishRoom").addEventListener("click", async () => {
   const room = await loadRoom(app.room.code);
   if (!room) return;
   if (!isRoomOwner(room)) {
-    showNotice("Somente o professor que criou a sala pode finalizar o show.", "Permissao negada", "warning");
+    showNotice("Somente o dono da sala pode finalizar o show.", "Permissao negada", "warning");
     return;
   }
 
@@ -1819,22 +1839,72 @@ $("#finishRoom").addEventListener("click", async () => {
   if (!confirmed) return;
 
   room.status = "finished";
-  addEvent(room, "Professor finalizou o show.");
+  addEvent(room, "O dono da sala finalizou o show.");
   playActionSound();
   await saveRoom(room);
   renderScoreboard();
   showScreen("scoreboard");
 });
 
-$("#joinQueue").addEventListener("click", async () => {
-  const room = await loadRoom(app.room.code);
-  if (!room) return;
-  if (!room.queue.includes(app.profile.id)) {
-    room.queue.push(app.profile.id);
-    addEvent(room, `${app.profile.name} entrou na fila.`);
+$("#participantPhotoInput").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    if (hasBlockedImageName(file)) throw new Error("Nome de arquivo bloqueado");
+    pendingParticipantPhoto = await resizeProfilePhoto(file);
+    $("#participantPhotoStatus").textContent = "Foto selecionada";
     playActionSound();
+  } catch {
+    event.target.value = "";
+    pendingParticipantPhoto = "";
+    $("#participantPhotoStatus").textContent = "Foto padrao";
+    showNotice("Nao foi possivel carregar esta foto. Tente outra imagem.", "Foto invalida", "warning");
   }
-  upsertParticipant(room);
+});
+
+$("#participantForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!app.room || !app.room.code) return;
+
+  const room = await loadRoom(app.room.code);
+  if (!room || !isRoomOwner(room)) {
+    showNotice("Somente o dono da sala pode cadastrar participantes.", "Permissao negada", "warning");
+    return;
+  }
+
+  const name = cleanText($("#participantNameInput").value, 32);
+  if (!name) {
+    showNotice("Digite o nome do participante.", "Nome obrigatorio", "warning");
+    return;
+  }
+  if (hasBlockedText(name)) {
+    showNotice("Escolha um nome respeitoso para o participante.", "Nome bloqueado", "warning");
+    return;
+  }
+  if ((room.queue || []).length >= 50) {
+    showNotice("Limite de 50 participantes atingido.", "Sala cheia", "warning");
+    return;
+  }
+
+  const id = `participant-${makeId()}`;
+  room.participants = room.participants || {};
+  room.participants[id] = {
+    id,
+    name,
+    photo: pendingParticipantPhoto,
+    role: "student",
+    joinedAt: Date.now(),
+    lastSeenAt: Date.now()
+  };
+  room.queue = room.queue || [];
+  room.queue.push(id);
+  addEvent(room, `${name} foi cadastrado como participante.`);
+  pendingParticipantPhoto = "";
+  $("#participantNameInput").value = "";
+  $("#participantPhotoInput").value = "";
+  $("#participantPhotoStatus").textContent = "Foto padrao";
+  playActionSound();
   await saveRoom(room);
   render();
 });
@@ -1849,15 +1919,16 @@ $("#newCompetition").addEventListener("click", async () => {
   app.profile.roomCode = "";
   saveProfile();
   $("#roomInput").value = "";
+  $("#quickRoomInput").value = "";
   $("#selectedRoomLabel").textContent = "---";
-  showScreen("room");
+  showScreen("welcome");
 });
 
 $("#restartCompetition").addEventListener("click", async () => {
   const room = await loadRoom(app.room.code);
   if (!room) return;
   if (!isRoomOwner(room)) {
-    showNotice("Somente o professor que criou a sala pode recomeçar.", "Permissao negada", "warning");
+    showNotice("Somente o dono da sala pode recomecar.", "Permissao negada", "warning");
     return;
   }
 
@@ -1904,6 +1975,7 @@ async function startScanner() {
       $("#roomInput").value = detectedCode;
       $("#selectedRoomLabel").textContent = detectedCode;
       app.selectedRoom = detectedCode;
+      app.profile.role = "viewer";
       stopScanner();
       $("#scannerStatus").textContent = `Codigo ${detectedCode} encontrado. Entrando...`;
       playActionSound();
@@ -1945,9 +2017,13 @@ function hydrateFromUrl() {
 
   if (room) {
     $("#roomInput").value = room;
+    $("#quickRoomInput").value = room;
     $("#selectedRoomLabel").textContent = room;
     app.selectedRoom = room;
     app.pendingInviteRoom = room;
+    app.profile.role = "viewer";
+    $("#joinAsJudge").textContent = "Entrar como convidado";
+    saveProfile();
   }
 
   return false;
@@ -1969,15 +2045,11 @@ async function restoreSavedSession() {
   if (!wasParticipant && room.removedParticipantIds && room.removedParticipantIds.includes(app.profile.id)) {
     app.profile.roomCode = "";
     saveProfile();
-    showNotice("Voce foi removido dessa sala pelo professor organizador.", "Participante removido", "danger");
+    showNotice("Voce foi removido dessa sala pelo dono da sala.", "Participante removido", "danger");
     return false;
   }
 
   upsertParticipant(room);
-  if (app.profile.role === "student" && !room.queue.includes(app.profile.id)) {
-    room.queue.push(app.profile.id);
-  }
-
   app.selectedRoom = savedCode;
   $("#roomInput").value = savedCode;
   $("#selectedRoomLabel").textContent = savedCode;
@@ -2007,7 +2079,7 @@ if (shouldAutoJoinRoom) {
 } else if (app.pendingInviteRoom) {
   window.setTimeout(() => {
     showScreen("welcome");
-    showNotice("Codigo da sala lido. Escolha nome, foto e perfil para entrar.", "Convite recebido", "info");
+    showNotice("Codigo da sala lido. Escolha nome e foto para entrar como convidado.", "Convite recebido", "info");
   }, 150);
 } else {
   window.setTimeout(restoreSavedSession, 150);

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Caca-Talentos Prof. Jony</title>
+    <title>Projeto Caca Talentos</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -42,20 +42,19 @@
                 <input id="nameInput" type="text" maxlength="28" placeholder="Seu nome" />
               </label>
 
-              <div class="role-select" aria-label="Escolha como entrar">
-                <button class="role-pill is-selected" data-role="student">Aluno</button>
-                <button class="role-pill" data-role="teacher">Professor</button>
-                <button class="role-pill" data-role="viewer">Convidado</button>
-              </div>
-
-              <div class="main-actions">
-                <button class="yellow-button" id="openRooms">Entrar no projeto</button>
+              <div class="entry-actions">
+                <button class="yellow-button" id="createRoomNow">Criar sala</button>
+                <label class="field code-field">
+                  <span>Codigo</span>
+                  <input id="quickRoomInput" type="text" maxlength="6" placeholder="Codigo da sala" />
+                </label>
+                <button class="blue-button" id="joinAsJudge">Entrar com codigo</button>
               </div>
             </div>
 
             <aside class="project-info">
               <h2>Como funciona</h2>
-              <p>Professor cria a sala, alunos entram pelo código ou QR Code, convidados acompanham e todos participam de uma apresentação organizada.</p>
+              <p>O dono cria a sala, cadastra os participantes, jurados entram pelo codigo e convidados acompanham pelo QR Code.</p>
               <div class="feature-icons">
                 <div><span>1</span><b>Apresentar</b></div>
                 <div><span>2</span><b>Avaliar</b></div>
@@ -81,7 +80,7 @@
             </div>
           </div>
 
-          <p class="room-help" id="roomHelp">Digite o codigo enviado pelo professor.</p>
+          <p class="room-help" id="roomHelp">Digite o codigo enviado pelo dono da sala.</p>
           <div class="scanner-box" id="scannerBox">
             <video id="qrVideo" playsinline muted></video>
             <div class="scanner-actions">
@@ -108,7 +107,7 @@
               <strong id="currentCode">---</strong>
               <button class="mini-button" id="copyCode" title="Copiar codigo">copiar</button>
             </div>
-            <div class="side-section-title">Alunos</div>
+            <div class="side-section-title">Participantes</div>
             <ul class="player-list" id="queueList"></ul>
             <div class="side-section">
               <span>Convidados</span>
@@ -126,7 +125,7 @@
               <div>
                 <span>Convite da sala</span>
                 <strong id="inviteCode">---</strong>
-                <p>Alunos, convidados e outros professores entram com este codigo.</p>
+                <p>Jurados entram com este codigo. Convidados entram pelo QR Code.</p>
               </div>
               <canvas id="qrCanvas" width="132" height="132" aria-label="QR Code da sala"></canvas>
             </section>
@@ -134,15 +133,26 @@
             <div class="photo-board">
               <div class="hint-card">APRESENTANDO</div>
               <img id="performerPhoto" alt="" />
-              <strong id="performerName">Aguardando aluno</strong>
+              <strong id="performerName">Aguardando participante</strong>
             </div>
 
             <div class="bottom-panels">
               <section class="professor-box">
-                <div class="box-label">PROFESSORES</div>
+                <div class="box-label">JURADOS</div>
                 <ul class="teacher-list" id="teacherList"></ul>
+                <form class="participant-creator" id="participantForm">
+                  <strong>Cadastrar participante</strong>
+                  <label class="field">
+                    <span>Nome</span>
+                    <input id="participantNameInput" type="text" maxlength="28" placeholder="Nome do participante" />
+                  </label>
+                  <label class="participant-photo-button" for="participantPhotoInput">Foto do participante</label>
+                  <input id="participantPhotoInput" type="file" accept="image/*" hidden />
+                  <span id="participantPhotoStatus">Foto padrao</span>
+                  <button class="blue-button" type="submit">Adicionar participante</button>
+                </form>
                 <div class="teacher-panel" id="teacherPanel">
-                  <div class="current-performer-pill" id="teacherCurrentStudent">Apresentando: aguardando aluno</div>
+                  <div class="current-performer-pill" id="teacherCurrentStudent">Apresentando: aguardando participante</div>
                   <div class="criteria-panel">
                     <label class="score-control">
                       <span>Afinacao e tecnica</span>
@@ -179,15 +189,11 @@
                     <button class="danger-button" id="finishRoom">FINALIZAR SHOW</button>
                   </div>
                 </div>
-                <div class="student-panel" id="studentPanel">
-                  <p id="studentMessage">Entre na fila e aguarde sua vez.</p>
-                  <button class="yellow-button" id="joinQueue">ENTRAR NA FILA</button>
-                </div>
                 <div class="viewer-panel" id="viewerPanel">
                   <p id="viewerMessage">Convidados acompanhando o show ao vivo.</p>
                   <div class="audience-vote" id="audienceVote">
-                    <button data-public-vote="bad">Ruim</button>
-                    <button data-public-vote="good">Bom</button>
+                    <button data-public-vote="bad">Bom</button>
+                    <button data-public-vote="good">Amei</button>
                     <button data-public-vote="great">Maravilhoso</button>
                   </div>
                 </div>
@@ -218,7 +224,7 @@
             <button class="blue-button" id="newCompetition">NOVA SALA</button>
           </div>
           <button class="test-button leave-room-button scoreboard-leave" id="leaveFinishedRoom">SAIR DA SALA</button>
-          <p class="waiting-host" id="waitingHost">Aguardando o professor iniciar outra rodada.</p>
+          <p class="waiting-host" id="waitingHost">Aguardando o dono da sala iniciar outra rodada.</p>
         </section>
       </section>
     </main>

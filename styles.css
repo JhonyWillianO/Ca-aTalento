@@ -459,6 +459,17 @@ h2 {
   animation: selectedBounce 2.3s ease-in-out infinite;
 }
 
+.entry-actions {
+  width: min(430px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.code-field {
+  width: 100%;
+}
+
 .main-actions,
 .room-actions,
 .score-actions {
@@ -1032,6 +1043,51 @@ h2 {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.participant-creator {
+  display: none;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 2px solid rgba(220, 174, 49, 0.55);
+  border-radius: 10px;
+  background: #fffdf4;
+}
+
+.participant-creator.is-active {
+  display: grid;
+}
+
+.participant-creator > strong {
+  color: var(--blue-deep);
+  font-size: 17px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.participant-creator .field {
+  width: 100%;
+  grid-template-columns: 62px 1fr;
+}
+
+.participant-photo-button {
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #063064;
+  border-radius: 16px;
+  color: #062a65;
+  background: #ffffff;
+  font-weight: 1000;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(3, 28, 79, 0.18);
+}
+
+#participantPhotoStatus {
+  color: #7b7f88;
+  font-weight: 900;
+  text-align: center;
 }
 
 .guest-list {

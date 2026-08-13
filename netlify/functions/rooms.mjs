@@ -8,6 +8,7 @@ const headers = {
 const MAX_BODY_BYTES = 900000;
 const MAX_EVENTS = 80;
 const MAX_PARTICIPANTS = 220;
+const MAX_QUEUE_PARTICIPANTS = 50;
 const ROOM_IDLE_MS = 60 * 60 * 1000;
 const PARTICIPANT_STALE_MS = 60 * 60 * 1000;
 const EMPTY_TEACHER_GRACE_MS = 2 * 60 * 1000;
@@ -173,7 +174,8 @@ function sanitizeRoom(room = {}) {
   const participantIds = new Set(Object.keys(participants));
   const queue = (Array.isArray(room.queue) ? room.queue : [])
     .map(cleanId)
-    .filter((id, index, ids) => id && participantIds.has(id) && ids.indexOf(id) === index);
+    .filter((id, index, ids) => id && participantIds.has(id) && ids.indexOf(id) === index)
+    .slice(0, MAX_QUEUE_PARTICIPANTS);
 
   return {
     code: cleanCode(room.code),
@@ -201,7 +203,7 @@ function pruneStaleParticipants(room, now = Date.now()) {
   const participants = {};
 
   for (const [id, person] of Object.entries(room.participants || {})) {
-    if (now - Number(person.lastSeenAt || person.joinedAt || 0) <= PARTICIPANT_STALE_MS) {
+    if (person.role === "student" || now - Number(person.lastSeenAt || person.joinedAt || 0) <= PARTICIPANT_STALE_MS) {
       participants[id] = person;
     }
   }
