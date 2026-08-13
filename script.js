@@ -39,7 +39,6 @@ const app = {
   room: null,
   selectedRoom: "",
   pendingInviteRoom: "",
-  displayMode: false,
   channel: createSyncChannel()
 };
 
@@ -531,12 +530,6 @@ function showScreen(name) {
   if (name === "room") renderRoomEntry();
 }
 
-function openDisplayMode() {
-  if (!app.room || !app.room.code) return;
-  const url = `${location.href.split("?")[0]}?room=${encodeURIComponent(app.room.code)}&display=screen`;
-  window.open(url, "_blank", "noopener,noreferrer");
-}
-
 function normalizeCode(value) {
   return value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 6);
 }
@@ -546,7 +539,6 @@ function makeCode() {
 }
 
 function saveProfile() {
-  if (app.displayMode) return;
   localStorage.setItem("talent-profile", JSON.stringify(app.profile));
 }
 
@@ -1224,9 +1216,7 @@ function renderRoomEntry() {
 function renderQueue() {
   const list = $("#queueList");
   list.innerHTML = "";
-  const performers = app.displayMode
-    ? students().sort((a, b) => average(b.id) - average(a.id) || a.joinedAt - b.joinedAt)
-    : students();
+  const performers = students();
 
   if (!performers.length) {
     renderEmpty(list);
@@ -1234,12 +1224,10 @@ function renderQueue() {
   }
 
   performers.forEach((student, index) => {
-    const queueIndex = app.room.queue.indexOf(student.id);
-    const state = queueIndex === app.room.currentIndex ? "apresentando" : queueIndex < app.room.currentIndex ? "concluido" : "aguardando";
+    const state = index === app.room.currentIndex ? "apresentando" : index < app.room.currentIndex ? "concluido" : "aguardando";
     const points = average(student.id).toFixed(1);
     const publicScore = audienceApproval(student.id);
-    const prefix = app.displayMode ? `${index + 1} lugar - ` : "";
-    list.append(personLine(student, `${prefix}${points}/40 pts - ${state} - ${publicScore.label}`, {
+    list.append(personLine(student, `${points}/40 pts - ${state} - ${publicScore.label}`, {
       removable: canRemoveParticipant(student)
     }));
   });
@@ -1521,7 +1509,7 @@ function renderStage() {
   const live = app.room.status !== "finished";
   const ownerControlsActive = isRoomOwner() && live;
   const canSeeRoomCode = isRoomOwner();
-  $("#currentCode").textContent = app.displayMode ? "PLACAR" : canSeeRoomCode ? app.room.code : "Privado";
+  $("#currentCode").textContent = canSeeRoomCode ? app.room.code : "Privado";
   $("#inviteCode").textContent = canSeeRoomCode ? app.room.code : "QR Code";
   $("#copyCode").style.display = canSeeRoomCode ? "inline-grid" : "none";
   $("#inviteText").style.display = canSeeRoomCode ? "block" : "none";
@@ -1537,8 +1525,6 @@ function renderStage() {
   $("#viewerPanel").classList.toggle("is-active", app.profile.role === "viewer" && live);
   $("#finishRoom").classList.toggle("is-active", ownerControlsActive);
   $("#inviteBox").classList.toggle("is-active", (app.profile.role === "teacher" || app.profile.role === "viewer") && live);
-  $("#displayControls").style.display = live ? "flex" : "none";
-  $("#openDisplayMode").style.display = app.profile.role === "teacher" && live ? "inline-block" : "none";
   $("#participantAdmin").classList.toggle("is-active", ownerControlsActive);
   $(".bottom-panels").classList.toggle("has-admin", ownerControlsActive);
   if ((app.profile.role === "teacher" || app.profile.role === "viewer") && live) renderQrCode(app.room.code);
@@ -1757,8 +1743,6 @@ $("#joinRoom").addEventListener("click", async () => {
 
 $("#leaveRoom").addEventListener("click", leaveCurrentRoom);
 $("#leaveFinishedRoom").addEventListener("click", leaveCurrentRoom);
-
-$("#openDisplayMode").addEventListener("click", openDisplayMode);
 
 $("#chatForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -2107,7 +2091,6 @@ function hydrateFromUrl() {
   const params = new URLSearchParams(location.search);
   const role = params.get("role");
   const room = normalizeCode(params.get("room") || "");
-  const display = params.get("display") === "screen";
 
   if (["student", "teacher", "viewer"].includes(role)) {
     app.profile.role = role;
@@ -2122,22 +2105,11 @@ function hydrateFromUrl() {
     app.selectedRoom = room;
     app.pendingInviteRoom = room;
     app.profile.role = "viewer";
-    app.displayMode = display;
-    if (display) {
-      const displayKey = `talent-display-${room}`;
-      const displayId = sessionStorage.getItem(displayKey) || `display-${room}-${makeId()}`;
-      sessionStorage.setItem(displayKey, displayId);
-      app.profile.id = displayId;
-      app.profile.name = "Telao";
-      app.profile.photo = "";
-      app.profile.roomCode = room;
-      document.body.classList.add("is-display-mode");
-    }
     $("#joinAsJudge").textContent = "Entrar como convidado";
     saveProfile();
   }
 
-  return Boolean(room && display);
+  return false;
 }
 
 async function restoreSavedSession() {
