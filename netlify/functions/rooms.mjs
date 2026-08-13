@@ -184,16 +184,6 @@ function sanitizeJoinSoundEvent(event = {}) {
   };
 }
 
-function sanitizeLiveVideo(liveVideo = {}) {
-  if (!liveVideo || typeof liveVideo !== "object") return { active: false, updatedAt: 0, hostId: "" };
-
-  return {
-    active: Boolean(liveVideo.active),
-    updatedAt: Number(liveVideo.updatedAt || 0),
-    hostId: cleanId(liveVideo.hostId)
-  };
-}
-
 function sanitizeRoom(room = {}) {
   const participants = sanitizeParticipants(room.participants);
   const participantIds = new Set(Object.keys(participants));
@@ -217,7 +207,6 @@ function sanitizeRoom(room = {}) {
     scores: sanitizeNested(room.scores),
     nextVotes: sanitizeNested(room.nextVotes),
     audienceVotes: sanitizeNested(room.audienceVotes),
-    liveVideo: sanitizeLiveVideo(room.liveVideo),
     joinSoundEvent: sanitizeJoinSoundEvent(room.joinSoundEvent),
     stageSoundEvent: sanitizeJoinSoundEvent(room.stageSoundEvent),
     events: sanitizeEvents(room.events),
@@ -348,9 +337,6 @@ function mergeRoom(existing, incoming) {
   const stageSoundEvent = Number(safeIncoming.stageSoundEvent?.at || 0) >= Number(safeExisting.stageSoundEvent?.at || 0)
     ? safeIncoming.stageSoundEvent
     : safeExisting.stageSoundEvent;
-  const liveVideo = Number(safeIncoming.liveVideo?.updatedAt || 0) >= Number(safeExisting.liveVideo?.updatedAt || 0)
-    ? safeIncoming.liveVideo
-    : safeExisting.liveVideo;
   const ownerLeft = participantDeleteIds.includes(safeExisting.ownerId);
 
   return {
@@ -370,7 +356,6 @@ function mergeRoom(existing, incoming) {
     scores: withoutRemovedNested(scores, participantDeleteIds),
     audienceVotes: withoutRemovedNested(audienceVotes, participantDeleteIds),
     nextVotes: withoutRemovedNested(nextVotes, participantDeleteIds),
-    liveVideo,
     joinSoundEvent,
     stageSoundEvent,
     events: newRound ? (safeIncoming.events || []) : mergeEvents(safeExisting.events, safeIncoming.events)
