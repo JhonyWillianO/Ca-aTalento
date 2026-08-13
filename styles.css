@@ -462,12 +462,25 @@ h2 {
 .entry-actions {
   width: min(430px, 100%);
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   justify-items: center;
   gap: 12px;
 }
 
 .code-field {
+  grid-column: 1 / -1;
   width: 100%;
+}
+
+#createRoomNow {
+  grid-column: 1 / -1;
+}
+
+.entry-actions .blue-button,
+.entry-actions .test-button {
+  width: 100%;
+  min-width: 0;
+  font-size: 18px;
 }
 
 .main-actions,
@@ -490,6 +503,7 @@ h2 {
 
 .blue-button,
 .yellow-button,
+.green-button,
 .test-button,
 .danger-button {
   min-width: 210px;
@@ -509,6 +523,11 @@ h2 {
 
 .yellow-button {
   background: var(--yellow);
+}
+
+.green-button {
+  color: #ffffff;
+  background: #12844f;
 }
 
 .test-button {
@@ -735,6 +754,7 @@ h2 {
 
 .ranking-panel,
 .photo-board,
+.participant-admin-box,
 .professor-box,
 .log-box {
   border: 3px solid #9db1bf;
@@ -747,6 +767,7 @@ h2 {
 
 .ranking-panel:hover,
 .photo-board:hover,
+.participant-admin-box:hover,
 .professor-box:hover,
 .log-box:hover,
 .invite-box:hover,
@@ -1021,11 +1042,30 @@ h2 {
   gap: 24px;
 }
 
+.bottom-panels.has-admin {
+  grid-template-columns: minmax(240px, 0.75fr) minmax(320px, 1fr) 330px;
+}
+
+.participant-admin-box,
 .professor-box,
 .log-box {
   min-height: 245px;
   position: relative;
   padding: 28px 24px 18px;
+}
+
+.participant-admin-box {
+  display: none;
+  border: 3px solid #9db1bf;
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 5px 0 rgba(3, 28, 79, 0.25);
+  animation: floatIn 330ms ease-out both;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.participant-admin-box.is-active {
+  display: block;
 }
 
 .box-label {
@@ -1046,17 +1086,12 @@ h2 {
 }
 
 .participant-creator {
-  display: none;
+  display: grid;
   gap: 10px;
-  margin-bottom: 12px;
   padding: 12px;
   border: 2px solid rgba(220, 174, 49, 0.55);
   border-radius: 10px;
   background: #fffdf4;
-}
-
-.participant-creator.is-active {
-  display: grid;
 }
 
 .participant-creator > strong {
@@ -1730,6 +1765,7 @@ h2 {
   .welcome-grid,
   .stage-layout,
   .bottom-panels,
+  .bottom-panels.has-admin,
   .rooms-top {
     grid-template-columns: 1fr;
   }
@@ -1890,6 +1926,7 @@ h2 {
 
   .blue-button,
   .yellow-button,
+  .green-button,
   .test-button,
   .danger-button {
     width: min(100%, 310px);

@@ -233,8 +233,8 @@ function ensureNoticeLayer() {
         <p id="confirmMessage"></p>
       </div>
       <div class="confirm-actions">
-        <button class="test-button" id="confirmCancel">CANCELAR</button>
-        <button class="danger-button" id="confirmOk">CONFIRMAR</button>
+        <button class="yellow-button" id="confirmCancel">CANCELAR</button>
+        <button class="green-button" id="confirmOk">CONFIRMAR</button>
       </div>
     </div>
   `;
@@ -456,10 +456,9 @@ function playAudienceVoteSound(vote) {
 
 function animatePerformerEntrance() {
   const board = $(".photo-board");
-  const stage = $(".stage-screen");
-  if (!board || !stage) return;
+  if (!board) return;
 
-  stage.scrollIntoView({ behavior: "smooth", block: "start" });
+  board.scrollIntoView({ behavior: "smooth", block: "center" });
   board.classList.remove("is-entering");
   void board.offsetWidth;
   board.classList.add("is-entering");
@@ -1460,11 +1459,13 @@ function renderStage() {
   announcePerformerChange(performer);
 
   const live = app.room.status !== "finished";
+  const ownerControlsActive = isRoomOwner() && live;
   $("#teacherPanel").classList.toggle("is-active", app.profile.role === "teacher" && live);
   $("#viewerPanel").classList.toggle("is-active", app.profile.role === "viewer" && live);
-  $("#finishRoom").classList.toggle("is-active", isRoomOwner() && live);
+  $("#finishRoom").classList.toggle("is-active", ownerControlsActive);
   $("#inviteBox").classList.toggle("is-active", app.profile.role === "teacher" && live);
-  $("#participantForm").classList.toggle("is-active", isRoomOwner() && live);
+  $("#participantAdmin").classList.toggle("is-active", ownerControlsActive);
+  $(".bottom-panels").classList.toggle("has-admin", ownerControlsActive);
   if (app.profile.role === "teacher" && live) renderQrCode(app.room.code);
 
   const alreadyScored = performer ? teacherScoredStudent(performer.id) : false;
@@ -1640,6 +1641,19 @@ $("#joinAsJudge").addEventListener("click", async () => {
   app.profile.role = app.pendingInviteRoom && code === app.pendingInviteRoom ? "viewer" : "teacher";
   if (!profileReady()) return;
   await joinRoom(code, false);
+});
+
+$("#scanAsGuest").addEventListener("click", () => {
+  app.profile.role = "viewer";
+  app.pendingInviteRoom = "";
+  app.selectedRoom = "";
+  $("#joinAsJudge").textContent = "Entrar com codigo";
+  $("#quickRoomInput").value = "";
+  $("#roomInput").value = "";
+  $("#selectedRoomLabel").textContent = "---";
+  if (!profileReady()) return;
+  showScreen("room");
+  window.setTimeout(startScanner, 180);
 });
 
 $("#roomInput").addEventListener("input", (event) => {

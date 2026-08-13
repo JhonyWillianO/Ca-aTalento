@@ -49,6 +49,7 @@
                   <input id="quickRoomInput" type="text" maxlength="6" placeholder="Codigo da sala" />
                 </label>
                 <button class="blue-button" id="joinAsJudge">Entrar com codigo</button>
+                <button class="test-button" id="scanAsGuest">Entrar como convidado</button>
               </div>
             </div>
 
@@ -137,9 +138,8 @@
             </div>
 
             <div class="bottom-panels">
-              <section class="professor-box">
-                <div class="box-label">JURADOS</div>
-                <ul class="teacher-list" id="teacherList"></ul>
+              <section class="participant-admin-box" id="participantAdmin">
+                <div class="box-label">PARTICIPANTES</div>
                 <form class="participant-creator" id="participantForm">
                   <strong>Cadastrar participante</strong>
                   <label class="field">
@@ -151,6 +151,11 @@
                   <span id="participantPhotoStatus">Foto padrao</span>
                   <button class="blue-button" type="submit">Adicionar participante</button>
                 </form>
+              </section>
+
+              <section class="professor-box">
+                <div class="box-label">JURADOS</div>
+                <ul class="teacher-list" id="teacherList"></ul>
                 <div class="teacher-panel" id="teacherPanel">
                   <div class="current-performer-pill" id="teacherCurrentStudent">Apresentando: aguardando participante</div>
                   <div class="criteria-panel">
