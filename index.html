@@ -119,6 +119,10 @@
           <section class="show-area">
             <div class="stage-toolbar">
               <div class="ribbon tiny" id="stageTitle">PALCO</div>
+              <div class="live-controls" id="liveControls">
+                <button class="green-button live-button" id="liveVideoToggle">INICIAR CAMERA</button>
+                <button class="blue-button live-button" id="openDisplayMode">MODO TELAO</button>
+              </div>
               <button class="test-button leave-room-button" id="leaveRoom">SAIR DA SALA</button>
             </div>
 
@@ -137,6 +141,12 @@
               <strong id="performerName">Aguardando participante</strong>
               <p id="performerDescription" class="performer-description"></p>
             </div>
+
+            <section class="live-video-panel" id="liveVideoPanel">
+              <div class="box-label wide-label">TRANSMISSAO AO VIVO</div>
+              <div class="live-video-frame" id="liveVideoFrame"></div>
+              <p id="liveVideoStatus">A camera abre aqui quando a transmissao iniciar.</p>
+            </section>
 
             <div class="bottom-panels">
               <section class="participant-admin-box" id="participantAdmin">

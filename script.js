@@ -39,6 +39,7 @@ const app = {
   room: null,
   selectedRoom: "",
   pendingInviteRoom: "",
+  displayMode: false,
   channel: createSyncChannel()
 };
 
@@ -166,6 +167,8 @@ let lastStagePerformerId = null;
 let lastStageSoundEventId = "";
 let lastJoinSoundEventId = "";
 let pendingParticipantPhoto = "";
+let jitsiApi = null;
+let jitsiScriptPromise = null;
 
 function cleanText(value = "", maxLength = 80) {
   return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
@@ -530,6 +533,119 @@ function showScreen(name) {
   if (name === "room") renderRoomEntry();
 }
 
+function videoRoomName(code) {
+  return `ProjetoCacaTalentos-${normalizeCode(code || "")}`;
+}
+
+function loadJitsiScript() {
+  if (window.JitsiMeetExternalAPI) return Promise.resolve();
+  if (jitsiScriptPromise) return jitsiScriptPromise;
+
+  jitsiScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://meet.jit.si/external_api.js";
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.append(script);
+  });
+
+  return jitsiScriptPromise;
+}
+
+function stopLiveVideo() {
+  if (jitsiApi && jitsiApi.dispose) jitsiApi.dispose();
+  jitsiApi = null;
+  $("#liveVideoFrame").innerHTML = "";
+  $("#liveVideoPanel").classList.remove("is-active");
+  $("#liveVideoStatus").textContent = "A camera abre aqui quando a transmissao iniciar.";
+  updateLiveButtons();
+}
+
+async function setLiveVideoActive(active) {
+  if (!app.room || !app.room.code || app.profile.role !== "teacher") return;
+  const room = await loadRoom(app.room.code);
+  if (!room) return;
+
+  room.liveVideo = {
+    active,
+    updatedAt: Date.now(),
+    hostId: active ? app.profile.id : ""
+  };
+  addEvent(room, active ? "A transmissao ao vivo foi iniciada." : "A transmissao ao vivo foi encerrada.");
+  await saveRoom(room);
+  app.room = room;
+}
+
+function liveToolbarButtons(isViewer) {
+  if (isViewer) return ["microphone", "camera", "fullscreen", "hangup", "tileview"];
+  return ["microphone", "camera", "desktop", "fullscreen", "hangup", "tileview", "settings"];
+}
+
+async function startLiveVideo() {
+  if (!app.room || !app.room.code) return;
+  const isViewer = app.profile.role === "viewer" || app.displayMode;
+
+  $("#liveVideoPanel").classList.add("is-active");
+  $("#liveVideoStatus").textContent = "Abrindo transmissao. O navegador pode pedir permissao de camera e microfone.";
+
+  try {
+    await loadJitsiScript();
+    if (jitsiApi && jitsiApi.dispose) jitsiApi.dispose();
+    $("#liveVideoFrame").innerHTML = "";
+    jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", {
+      roomName: videoRoomName(app.room.code),
+      parentNode: $("#liveVideoFrame"),
+      width: "100%",
+      height: "100%",
+      userInfo: {
+        displayName: app.displayMode ? "Telao" : `${app.profile.name} (${roleLabel(app.profile.role)})`
+      },
+      configOverwrite: {
+        disableDeepLinking: true,
+        prejoinConfig: { enabled: false },
+        startWithAudioMuted: isViewer,
+        startWithVideoMuted: isViewer
+      },
+      interfaceConfigOverwrite: {
+        MOBILE_APP_PROMO: false,
+        SHOW_JITSI_WATERMARK: false,
+        TOOLBAR_BUTTONS: liveToolbarButtons(isViewer)
+      }
+    });
+    $("#liveVideoStatus").textContent = isViewer
+      ? "Voce entrou como espectador. Ative tela cheia se estiver no telao."
+      : "Transmissao aberta. Confira camera e microfone antes da apresentacao.";
+    if (app.profile.role === "teacher") await setLiveVideoActive(true);
+    updateLiveButtons();
+  } catch {
+    stopLiveVideo();
+    showNotice("Nao foi possivel abrir a transmissao agora. Confira a internet e tente novamente.", "Camera ao vivo", "warning");
+  }
+}
+
+function updateLiveButtons() {
+  const button = $("#liveVideoToggle");
+  if (!button) return;
+  const watching = Boolean(jitsiApi);
+  const isTeacher = app.profile.role === "teacher";
+  button.textContent = watching
+    ? isTeacher
+      ? "FECHAR CAMERA"
+      : "FECHAR AO VIVO"
+    : isTeacher
+      ? "INICIAR CAMERA"
+      : "ASSISTIR AO VIVO";
+  button.classList.toggle("green-button", !watching);
+  button.classList.toggle("danger-button", watching);
+}
+
+function openDisplayMode() {
+  if (!app.room || !app.room.code) return;
+  const url = `${location.href.split("?")[0]}?room=${encodeURIComponent(app.room.code)}&display=screen`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 function normalizeCode(value) {
   return value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 6);
 }
@@ -539,6 +655,7 @@ function makeCode() {
 }
 
 function saveProfile() {
+  if (app.displayMode) return;
   localStorage.setItem("talent-profile", JSON.stringify(app.profile));
 }
 
@@ -686,6 +803,7 @@ function createRoom(code) {
     scores: {},
     nextVotes: {},
     audienceVotes: {},
+    liveVideo: { active: false, updatedAt: 0, hostId: "" },
     events: [],
     createdAt: now,
     lastActivityAt: now,
@@ -809,6 +927,9 @@ async function joinRoom(code, shouldCreate = false) {
   syncParticipantJoinSounds(app.room, false);
   render();
   showScreen(room.status === "finished" ? "scoreboard" : "stage");
+  if (app.displayMode && room.status !== "finished") {
+    window.setTimeout(startLiveVideo, 500);
+  }
 }
 
 async function createUniqueRoomCode() {
@@ -1026,12 +1147,17 @@ function removeParticipantFromRoom(room, participantId) {
 
 async function leaveCurrentRoom() {
   if (!app.room || !app.room.code) {
+    stopLiveVideo();
     showScreen("welcome");
     return;
   }
 
   const confirmed = await askConfirm("Realmente quer sair da sala?", "Sair da sala");
   if (!confirmed) return;
+
+  const hadLiveVideo = Boolean(jitsiApi);
+  stopLiveVideo();
+  if (hadLiveVideo) await setLiveVideoActive(false);
 
   const code = app.room.code;
   const room = await loadRoom(code);
@@ -1086,6 +1212,7 @@ async function syncActiveRoom() {
 
   const latest = await loadRoom(app.room.code);
   if (!latest) {
+    stopLiveVideo();
     app.room = null;
     app.profile.roomCode = "";
     saveProfile();
@@ -1095,6 +1222,7 @@ async function syncActiveRoom() {
   }
 
   if (latest.participants && !latest.participants[app.profile.id]) {
+    stopLiveVideo();
     app.room = null;
     app.profile.roomCode = "";
     showNotice("Voce foi removido da sala pelo dono da sala.", "Participante removido", "danger");
@@ -1103,7 +1231,12 @@ async function syncActiveRoom() {
   }
 
   const previousStatus = app.room.status;
+  const previousLive = Boolean(app.room.liveVideo && app.room.liveVideo.active);
   app.room = latest;
+  if (jitsiApi && previousLive && !(latest.liveVideo && latest.liveVideo.active) && app.profile.role !== "teacher") {
+    stopLiveVideo();
+    showNotice("A transmissao ao vivo foi encerrada pelo jurado.", "Camera ao vivo", "info");
+  }
   syncParticipantJoinSounds(latest);
   render();
 
@@ -1523,9 +1656,18 @@ function renderStage() {
   $("#viewerPanel").classList.toggle("is-active", app.profile.role === "viewer" && live);
   $("#finishRoom").classList.toggle("is-active", ownerControlsActive);
   $("#inviteBox").classList.toggle("is-active", (app.profile.role === "teacher" || app.profile.role === "viewer") && live);
+  $("#liveControls").style.display = live ? "flex" : "none";
+  $("#openDisplayMode").style.display = app.profile.role === "teacher" && live ? "inline-block" : "none";
+  if (!jitsiApi) {
+    const activeLive = Boolean(app.room.liveVideo && app.room.liveVideo.active);
+    $("#liveVideoStatus").textContent = activeLive
+      ? "Transmissao ao vivo ativa. Clique em assistir para acompanhar."
+      : "A camera abre aqui quando a transmissao iniciar.";
+  }
   $("#participantAdmin").classList.toggle("is-active", ownerControlsActive);
   $(".bottom-panels").classList.toggle("has-admin", ownerControlsActive);
   if ((app.profile.role === "teacher" || app.profile.role === "viewer") && live) renderQrCode(app.room.code);
+  updateLiveButtons();
 
   const alreadyScored = performer ? teacherScoredStudent(performer.id) : false;
   const voteStatus = performer ? teacherVoteStatus(performer.id) : { votedCount: 0, total: 0, complete: false };
@@ -1742,6 +1884,26 @@ $("#joinRoom").addEventListener("click", async () => {
 $("#leaveRoom").addEventListener("click", leaveCurrentRoom);
 $("#leaveFinishedRoom").addEventListener("click", leaveCurrentRoom);
 
+$("#liveVideoToggle").addEventListener("click", async () => {
+  if (jitsiApi) {
+    stopLiveVideo();
+    await setLiveVideoActive(false);
+    return;
+  }
+
+  if (app.profile.role === "teacher") {
+    const confirmed = await askConfirm("Iniciar camera e microfone da transmissao ao vivo desta sala?", "Camera ao vivo", {
+      okText: "SIM",
+      cancelText: "NAO"
+    });
+    if (!confirmed) return;
+  }
+
+  await startLiveVideo();
+});
+
+$("#openDisplayMode").addEventListener("click", openDisplayMode);
+
 $("#chatForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!app.room || !app.room.code) return;
@@ -1912,6 +2074,10 @@ $("#finishRoom").addEventListener("click", async () => {
   const confirmed = await askConfirm("Tem certeza que quer finalizar o show?", "Finalizar show");
   if (!confirmed) return;
 
+  if (jitsiApi) {
+    stopLiveVideo();
+    room.liveVideo = { active: false, updatedAt: Date.now(), hostId: "" };
+  }
   room.status = "finished";
   addEvent(room, "O dono da sala finalizou o show.");
   playActionSound();
@@ -1991,6 +2157,7 @@ $("#participantForm").addEventListener("submit", async (event) => {
 });
 
 $("#newCompetition").addEventListener("click", async () => {
+  stopLiveVideo();
   if (app.room && app.room.code && isRoomOwner(app.room)) {
     await deleteRoom(app.room.code);
   }
@@ -2089,6 +2256,7 @@ function hydrateFromUrl() {
   const params = new URLSearchParams(location.search);
   const role = params.get("role");
   const room = normalizeCode(params.get("room") || "");
+  const display = params.get("display") === "screen";
 
   if (["student", "teacher", "viewer"].includes(role)) {
     app.profile.role = role;
@@ -2103,11 +2271,22 @@ function hydrateFromUrl() {
     app.selectedRoom = room;
     app.pendingInviteRoom = room;
     app.profile.role = "viewer";
+    app.displayMode = display;
+    if (display) {
+      const displayKey = `talent-display-${room}`;
+      const displayId = sessionStorage.getItem(displayKey) || `display-${room}-${makeId()}`;
+      sessionStorage.setItem(displayKey, displayId);
+      app.profile.id = displayId;
+      app.profile.name = "Telao";
+      app.profile.photo = "";
+      app.profile.roomCode = room;
+      document.body.classList.add("is-display-mode");
+    }
     $("#joinAsJudge").textContent = "Entrar como convidado";
     saveProfile();
   }
 
-  return false;
+  return Boolean(room && display);
 }
 
 async function restoreSavedSession() {
