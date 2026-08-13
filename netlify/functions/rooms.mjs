@@ -104,6 +104,7 @@ function sanitizeParticipant(person = {}, fallbackId = "") {
   return {
     id,
     name: hasBlockedText(person.name) ? "Visitante" : cleanText(person.name || "Visitante", 32),
+    description: hasBlockedText(person.description) ? "" : cleanText(person.description || "", 140),
     photo: String(person.photo || "").length <= 260000 ? String(person.photo || "") : "",
     role: VALID_ROLES.has(person.role) ? person.role : "student",
     joinedAt: Number(person.joinedAt || Date.now()),

@@ -108,23 +108,31 @@ const SOUND_FILES = {
 };
 
 const STAGE_EFFECT_FILES = [
-  "./efeitos%20sonoros/99-efeito.mp3",
   "./efeitos%20sonoros/ai-gostei-rodrigo-faro.mp3",
   "./efeitos%20sonoros/aiaiai-rodrigo-faro.mp3",
   "./efeitos%20sonoros/aii-mamae.mp3",
+  "./efeitos%20sonoros/ai-que-delicia-mickey.mp3",
+  "./efeitos%20sonoros/cavalo-ratinho.mp3",
   "./efeitos%20sonoros/danca-gatinho-danca-hora-do-faro.mp3",
   "./efeitos%20sonoros/demaals.mp3",
   "./efeitos%20sonoros/e-brincadeira-hein-rodrigo-faro.mp3",
   "./efeitos%20sonoros/efeito-balancando.mp3",
   "./efeitos%20sonoros/efeito-ring.mp3",
   "./efeitos%20sonoros/ele-g0sta.mp3",
+  "./efeitos%20sonoros/me-chama-de-lord.mp3",
   "./efeitos%20sonoros/m-efeito-sonoro-cutuco-correndo.mp3",
+  "./efeitos%20sonoros/m-e-o-w.mp3",
   "./efeitos%20sonoros/olha-la-rodrigo-faro.mp3",
   "./efeitos%20sonoros/quack-efeito-sonoro.mp3",
   "./efeitos%20sonoros/que-cara-mais-sem-graca-rodrigo-faro.mp3",
+  "./efeitos%20sonoros/que-isso-moreno.mp3",
   "./efeitos%20sonoros/que-papelao-hein-efeito-sonoro.mp3",
+  "./efeitos%20sonoros/rei-das-feras-plantado-one-punch-man-pt-br.mp3",
+  "./efeitos%20sonoros/ronaldo.mp3",
   "./efeitos%20sonoros/saitama-voce-apareceu-mesmo-pt-br.mp3",
+  "./efeitos%20sonoros/toma-milk-shake-de-morango_bQhZ8mn.mp3",
   "./efeitos%20sonoros/uou-efeito-sonoro.mp3",
+  "./efeitos%20sonoros/wooow-26.mp3",
   "./efeitos%20sonoros/zoeira-efeito-brinquedo-de-borracha.mp3",
   "./efeitos%20sonoros/zoeira-efeito-roblox-morre.mp3"
 ];
@@ -1505,6 +1513,8 @@ function renderStage() {
   $("#inviteText").style.display = canSeeRoomCode ? "block" : "none";
   $("#stageTitle").textContent = app.room.status === "finished" ? "ENCERRADO" : "PALCO";
   $("#performerName").textContent = (performer && performer.name) || "Aguardando participante";
+  $("#performerDescription").textContent = (performer && performer.description) || "";
+  $("#performerDescription").classList.toggle("is-active", Boolean(performer && performer.description));
   $("#performerPhoto").src = performer ? avatarFor(performer) : defaultAvatar("student");
   $("#teacherCurrentStudent").textContent = performer ? `Apresentando: ${performer.name}` : "Apresentando: aguardando participante";
   announcePerformerChange(performer);
@@ -1918,11 +1928,13 @@ $("#participantPhotoInput").addEventListener("change", async (event) => {
     if (hasBlockedImageName(file)) throw new Error("Nome de arquivo bloqueado");
     pendingParticipantPhoto = await resizeProfilePhoto(file);
     $("#participantPhotoStatus").textContent = "Foto selecionada";
+    $("#participantPhotoPreview").src = pendingParticipantPhoto;
     playActionSound();
   } catch {
     event.target.value = "";
     pendingParticipantPhoto = "";
     $("#participantPhotoStatus").textContent = "Foto padrao";
+    $("#participantPhotoPreview").src = defaultAvatar("student");
     showNotice("Nao foi possivel carregar esta foto. Tente outra imagem.", "Foto invalida", "warning");
   }
 });
@@ -1946,6 +1958,11 @@ $("#participantForm").addEventListener("submit", async (event) => {
     showNotice("Escolha um nome respeitoso para o participante.", "Nome bloqueado", "warning");
     return;
   }
+  const description = cleanText($("#participantDescriptionInput").value, 140);
+  if (hasBlockedText(description)) {
+    showNotice("A descricao contem palavra impropria.", "Descricao bloqueada", "warning");
+    return;
+  }
   if ((room.queue || []).length >= 50) {
     showNotice("Limite de 50 participantes atingido.", "Sala cheia", "warning");
     return;
@@ -1956,6 +1973,7 @@ $("#participantForm").addEventListener("submit", async (event) => {
   room.participants[id] = {
     id,
     name,
+    description,
     photo: pendingParticipantPhoto,
     role: "student",
     joinedAt: Date.now(),
@@ -1966,8 +1984,10 @@ $("#participantForm").addEventListener("submit", async (event) => {
   addEvent(room, `${name} foi cadastrado como participante.`);
   pendingParticipantPhoto = "";
   $("#participantNameInput").value = "";
+  $("#participantDescriptionInput").value = "";
   $("#participantPhotoInput").value = "";
   $("#participantPhotoStatus").textContent = "Foto padrao";
+  $("#participantPhotoPreview").src = defaultAvatar("student");
   playActionSound();
   await saveRoom(room);
   render();
@@ -2129,6 +2149,7 @@ document.body.dataset.screen = "welcome";
 updateHeader();
 syncRoleButtons();
 updateScoreTotal();
+$("#participantPhotoPreview").src = defaultAvatar("student");
 document.addEventListener("pointerdown", ensureAudio, { once: true });
 document.addEventListener("click", (event) => {
   const button = event.target.closest("button");

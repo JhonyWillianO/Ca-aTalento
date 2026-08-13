@@ -135,17 +135,24 @@
               <div class="hint-card">APRESENTANDO</div>
               <img id="performerPhoto" alt="" />
               <strong id="performerName">Aguardando participante</strong>
+              <p id="performerDescription" class="performer-description"></p>
             </div>
 
             <div class="bottom-panels">
               <section class="participant-admin-box" id="participantAdmin">
                 <div class="box-label wide-label">ADICIONAR PARTICIPANTES</div>
                 <form class="participant-creator" id="participantForm">
-                  <strong>Cadastrar participante</strong>
                   <label class="field">
                     <span>Nome</span>
                     <input id="participantNameInput" type="text" maxlength="28" placeholder="Nome do participante" />
                   </label>
+                  <label class="field participant-description-field">
+                    <span>Descricao</span>
+                    <textarea id="participantDescriptionInput" maxlength="140" placeholder="Musica, talento ou recado do participante"></textarea>
+                  </label>
+                  <div class="participant-photo-preview">
+                    <img id="participantPhotoPreview" alt="" />
+                  </div>
                   <label class="participant-photo-button" for="participantPhotoInput">Foto do participante</label>
                   <input id="participantPhotoInput" type="file" accept="image/*" hidden />
                   <span id="participantPhotoStatus">Foto padrao</span>
