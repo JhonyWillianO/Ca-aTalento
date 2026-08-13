@@ -303,12 +303,21 @@ function stopMediaAudio() {
   activeMediaAudio = null;
 }
 
-function playAudioFile(src, volume = 0.82) {
+function playAudioFile(src, volume = 0.82, maxDuration = 0) {
   ensureAudio();
   stopMediaAudio();
   const audio = new Audio(src);
   audio.volume = volume;
   activeMediaAudio = audio;
+  if (maxDuration > 0) {
+    const timer = window.setTimeout(() => {
+      if (activeMediaAudio !== audio) return;
+      audio.pause();
+      audio.currentTime = 0;
+      activeMediaAudio = null;
+    }, maxDuration * 1000);
+    activeMediaTimers.push(timer);
+  }
   audio.addEventListener("ended", () => {
     if (activeMediaAudio === audio) activeMediaAudio = null;
   });
@@ -386,7 +395,7 @@ function playAdvanceSound() {
   }
 
   lastStageEffectIndex = index;
-  playAudioFile(STAGE_EFFECT_FILES[index], 0.82);
+  playAudioFile(STAGE_EFFECT_FILES[index], 0.82, 6);
 }
 
 function playFinishSound() {

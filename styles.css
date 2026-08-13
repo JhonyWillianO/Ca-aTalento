@@ -371,7 +371,7 @@ h2 {
   position: relative;
   display: grid;
   place-items: center;
-  overflow: hidden;
+  overflow: visible;
   border: 5px solid var(--yellow);
   border-radius: 50%;
   background: #fff;
@@ -393,8 +393,8 @@ h2 {
   height: 54px;
   position: absolute;
   z-index: 3;
-  right: -8px;
-  top: 26px;
+  right: -24px;
+  top: 36px;
   display: grid;
   place-items: center;
   border: 5px solid #fff;
@@ -1252,6 +1252,17 @@ h2 {
   place-items: center;
   color: #858585;
   font-weight: 1000;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.player-list li.empty,
+.guest-list li.empty,
+.teacher-list li.empty {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  width: 100%;
+  padding: 18px 16px;
 }
 
 .score-card {
