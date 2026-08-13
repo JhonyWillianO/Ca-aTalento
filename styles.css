@@ -1043,7 +1043,7 @@ h2 {
 }
 
 .bottom-panels.has-admin {
-  grid-template-columns: minmax(240px, 0.75fr) minmax(320px, 1fr) 330px;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(320px, 1fr) 330px;
 }
 
 .participant-admin-box,
@@ -1051,7 +1051,7 @@ h2 {
 .log-box {
   min-height: 245px;
   position: relative;
-  padding: 28px 24px 18px;
+  padding: 34px 24px 18px;
 }
 
 .participant-admin-box {
@@ -1079,7 +1079,8 @@ h2 {
 }
 
 .box-label.wide-label {
-  min-width: min(90%, 250px);
+  min-width: min(92%, 310px);
+  min-height: 48px;
   padding: 0 12px;
   font-size: 16px;
   text-align: center;
@@ -1094,14 +1095,16 @@ h2 {
 
 .participant-creator {
   display: grid;
-  gap: 10px;
-  padding: 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
   border: 2px solid rgba(220, 174, 49, 0.55);
   border-radius: 10px;
   background: #fffdf4;
 }
 
 .participant-creator > strong {
+  grid-column: 1 / -1;
   color: var(--blue-deep);
   font-size: 17px;
   text-align: center;
@@ -1109,8 +1112,9 @@ h2 {
 }
 
 .participant-creator .field {
+  grid-column: 1 / -1;
   width: 100%;
-  grid-template-columns: 62px 1fr;
+  grid-template-columns: 72px 1fr;
 }
 
 .participant-photo-button {
@@ -1127,9 +1131,17 @@ h2 {
 }
 
 #participantPhotoStatus {
+  display: grid;
+  align-items: center;
   color: #7b7f88;
   font-weight: 900;
   text-align: center;
+}
+
+.participant-creator .blue-button {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
 }
 
 .guest-list {
@@ -1791,6 +1803,7 @@ h2 {
 
   .invite-box,
   .audience-vote,
+  .participant-creator,
   .chat-form {
     grid-template-columns: 1fr;
   }

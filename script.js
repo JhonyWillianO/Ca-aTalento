@@ -1495,6 +1495,7 @@ function renderStage() {
   $("#currentCode").textContent = canSeeRoomCode ? app.room.code : "Privado";
   $("#inviteCode").textContent = canSeeRoomCode ? app.room.code : "QR Code";
   $("#copyCode").style.display = canSeeRoomCode ? "inline-grid" : "none";
+  $("#inviteText").style.display = canSeeRoomCode ? "block" : "none";
   $("#stageTitle").textContent = app.room.status === "finished" ? "ENCERRADO" : "PALCO";
   $("#performerName").textContent = (performer && performer.name) || "Aguardando participante";
   $("#performerPhoto").src = performer ? avatarFor(performer) : defaultAvatar("student");
