@@ -12,7 +12,7 @@ const MAX_QUEUE_PARTICIPANTS = 50;
 const ROOM_IDLE_MS = 60 * 60 * 1000;
 const PARTICIPANT_STALE_MS = 60 * 60 * 1000;
 const EMPTY_TEACHER_GRACE_MS = 2 * 60 * 1000;
-const VALID_ROLES = new Set(["student", "teacher", "viewer"]);
+const VALID_ROLES = new Set(["student", "owner", "teacher", "viewer"]);
 const BLOCKED_WORDS = [
   "arrombado",
   "boquete",
@@ -26,10 +26,8 @@ const BLOCKED_WORDS = [
   "merda",
   "nude",
   "nudes",
-  "pau",
   "pelada",
   "pelado",
-  "pinto",
   "porn",
   "porno",
   "porr",
@@ -235,10 +233,10 @@ function pruneStaleParticipants(room, now = Date.now()) {
 
 function roomShouldBeDeleted(room, now = Date.now()) {
   const cleaned = pruneStaleParticipants(sanitizeRoom(room), now);
-  const hasTeacher = Object.values(cleaned.participants || {}).some((person) => person.role === "teacher");
+  const hasHost = Object.values(cleaned.participants || {}).some((person) => person.role === "owner" || person.role === "teacher");
   const age = now - Number(cleaned.createdAt || 0);
   const idleFor = now - Number(cleaned.lastActivityAt || cleaned.createdAt || 0);
-  return (!hasTeacher && age >= EMPTY_TEACHER_GRACE_MS) || idleFor >= ROOM_IDLE_MS;
+  return (!hasHost && age >= EMPTY_TEACHER_GRACE_MS) || idleFor >= ROOM_IDLE_MS;
 }
 
 function mergeNested(existing = {}, incoming = {}) {

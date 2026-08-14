@@ -396,17 +396,20 @@ body[data-screen="welcome"] .game-header {
 
 .welcome-grid {
   display: grid;
-  grid-template-columns: 0.95fr 1.05fr;
+  grid-template-columns: minmax(360px, 560px) minmax(360px, 1fr);
   gap: 36px;
   align-items: stretch;
+  justify-content: center;
 }
 
 .profile-zone {
+  width: min(560px, 100%);
+  margin: 0 auto;
   display: grid;
   justify-items: center;
   align-content: start;
-  gap: 18px;
-  padding: 24px;
+  gap: 20px;
+  padding: 30px 34px;
   border: 2px solid #dbe6d0;
   border-radius: 16px;
   background: #fbfdf8;
@@ -481,8 +484,8 @@ h2 {
 }
 
 .name-field {
-  width: min(430px, 100%);
-  grid-template-columns: 150px 1fr;
+  width: min(470px, 100%);
+  grid-template-columns: 164px 1fr;
 }
 
 .name-field span {
@@ -548,7 +551,7 @@ h2 {
 }
 
 .entry-actions {
-  width: min(430px, 100%);
+  width: min(470px, 100%);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   justify-items: center;
@@ -562,6 +565,7 @@ h2 {
 
 #createRoomNow {
   grid-column: 1 / -1;
+  width: min(240px, 100%);
 }
 
 .entry-actions .blue-button,
