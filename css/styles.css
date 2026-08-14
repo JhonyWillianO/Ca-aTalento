@@ -571,6 +571,11 @@ h2 {
   font-size: 18px;
 }
 
+.entry-actions .qr-button {
+  grid-column: 1 / -1;
+  width: min(100%, 260px);
+}
+
 .main-actions,
 .room-actions,
 .score-actions {

@@ -1704,6 +1704,15 @@ $("#joinAsJudge").addEventListener("click", async () => {
   await joinRoom(code, false);
 });
 
+$("#joinAsGuest").addEventListener("click", async () => {
+  const code = prepareQuickCodeInput($("#quickRoomInput").value || app.pendingInviteRoom || app.selectedRoom);
+  app.profile.role = "viewer";
+  app.pendingInviteRoom = "";
+  $("#joinAsJudge").textContent = "Entrar com codigo";
+  if (!profileReady()) return;
+  await joinRoom(code, false);
+});
+
 $("#scanAsGuest").addEventListener("click", () => {
   app.profile.role = "viewer";
   app.pendingInviteRoom = "";
