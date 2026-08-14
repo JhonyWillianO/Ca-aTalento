@@ -848,28 +848,25 @@ h2 {
 }
 
 .stage-layout {
-  width: min(1510px, 100%);
+  width: min(1700px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(280px, 390px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 310px) minmax(0, 1fr) minmax(330px, 460px);
   grid-template-areas:
-    "side main"
-    "side controls";
-  gap: 26px;
+    "side main judges";
+  gap: 24px;
   align-items: start;
 }
 
 .stage-layout.is-owner-view {
   grid-template-areas:
-    "side main"
-    "side controls";
+    "side main judges";
 }
 
 .stage-layout.is-audience-view {
-  grid-template-columns: minmax(280px, 390px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 310px) minmax(0, 1fr) minmax(330px, 460px);
   grid-template-areas:
-    "side main"
-    "side controls";
+    "side main judges";
 }
 
 .room-side-panel {
@@ -880,8 +877,8 @@ h2 {
   grid-area: main;
 }
 
-.stage-controls {
-  grid-area: controls;
+.stage-judge-panel {
+  grid-area: judges;
 }
 
 .stage-layout.is-audience-view .participant-admin-box {
@@ -1050,18 +1047,18 @@ h2 {
 .show-area {
   min-width: 0;
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .stage-toolbar {
-  width: min(100%, 980px);
+  width: min(100%, 760px);
   min-width: 0;
   justify-self: center;
   display: grid;
   grid-template-columns: minmax(132px, auto) minmax(140px, 1fr) minmax(84px, auto);
   align-items: center;
-  gap: 16px;
-  margin: -8px auto -8px;
+  gap: 12px;
+  margin: 0 auto -6px;
 }
 
 .leave-room-button {
@@ -1101,6 +1098,14 @@ h2 {
   image-rendering: pixelated;
 }
 
+.stage-content-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(390px, 1fr) minmax(280px, 340px);
+  gap: 22px;
+  align-items: stretch;
+}
+
 .scoreboard-leave {
   justify-self: center;
 }
@@ -1132,11 +1137,11 @@ h2 {
 }
 
 .photo-board {
-  min-height: clamp(520px, 58vh, 720px);
+  min-height: clamp(430px, 52vh, 560px);
   position: relative;
   display: grid;
   place-items: center;
-  padding: 76px 34px 42px;
+  padding: 70px 34px 38px;
 }
 
 .hint-card,
@@ -1158,8 +1163,8 @@ h2 {
 }
 
 .photo-board img {
-  max-width: min(560px, 86%);
-  max-height: 360px;
+  max-width: min(430px, 82%);
+  max-height: 300px;
   border: 8px solid #063a82;
   border-radius: 28px;
   object-fit: cover;
@@ -1219,6 +1224,16 @@ h2 {
   padding: 40px 28px 22px;
 }
 
+.stage-participant-admin {
+  align-self: start;
+}
+
+.stage-judge-panel {
+  min-height: calc(100vh - 32px);
+  display: grid;
+  align-content: start;
+}
+
 .participant-admin-box {
   display: none;
   border: 3px solid #9db1bf;
@@ -1233,17 +1248,29 @@ h2 {
   display: block;
 }
 
-.side-chat-box {
-  min-height: 220px;
-  flex: 1;
+.side-chat-box,
+.stage-chat-box {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
   border: 0;
+  overflow: hidden;
+  padding: 38px 16px 16px;
+}
+
+.side-chat-box {
+  flex: 1;
   border-top: 2px solid #d8e0e6;
   border-radius: 0;
   box-shadow: none;
-  overflow: hidden;
-  padding: 38px 16px 16px;
+}
+
+.stage-chat-box {
+  min-height: clamp(430px, 52vh, 560px);
+  border: 3px solid #9db1bf;
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 5px 0 rgba(3, 28, 79, 0.25);
 }
 
 .side-chat-box:hover {
@@ -1252,19 +1279,22 @@ h2 {
   box-shadow: none;
 }
 
-.side-chat-box .box-label {
+.side-chat-box .box-label,
+.stage-chat-box .box-label {
   top: 10px;
   min-height: 30px;
   font-size: 14px;
 }
 
-.side-chat-box .score-list {
+.side-chat-box .score-list,
+.stage-chat-box .score-list {
   min-height: 0;
   max-height: none;
   overflow: auto;
 }
 
-.side-chat-box .chat-form {
+.side-chat-box .chat-form,
+.stage-chat-box .chat-form {
   flex-shrink: 0;
 }
 
@@ -1394,6 +1424,49 @@ h2 {
   min-width: 0;
 }
 
+.stage-participant-admin .participant-creator {
+  grid-template-columns: 82px minmax(160px, 1fr) minmax(180px, 1.05fr) auto;
+  align-items: center;
+  padding: 14px 18px;
+}
+
+.stage-participant-admin .participant-photo-picker,
+.stage-participant-admin .participant-creator .field,
+.stage-participant-admin .participant-creator .blue-button {
+  grid-column: auto;
+}
+
+.stage-participant-admin .participant-photo-picker {
+  width: 72px;
+  height: 72px;
+}
+
+.stage-participant-admin .participant-photo-picker .edit-badge {
+  width: 30px;
+  height: 30px;
+  right: -12px;
+  top: 14px;
+  border-width: 3px;
+  font-size: 18px;
+}
+
+.stage-participant-admin .participant-creator .field {
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+
+.stage-participant-admin .participant-creator textarea {
+  min-height: 48px;
+}
+
+.stage-participant-admin .participant-creator .blue-button {
+  min-width: 170px;
+  min-height: 48px;
+  border-width: 4px;
+  border-radius: 18px;
+  font-size: 15px;
+}
+
 .guest-list {
   display: grid;
   gap: 8px;
@@ -1500,6 +1573,14 @@ h2 {
 .criteria-panel {
   display: grid;
   gap: 10px;
+}
+
+.stage-judge-panel .criteria-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stage-judge-panel .score-total {
+  grid-column: 1 / -1;
 }
 
 .score-control {
@@ -2006,12 +2087,12 @@ h2 {
   }
 
   .stage-layout {
-    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    grid-template-columns: minmax(240px, 290px) minmax(0, 1fr) minmax(300px, 380px);
     gap: 18px;
   }
 
   .stage-layout.is-audience-view {
-    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    grid-template-columns: minmax(240px, 290px) minmax(0, 1fr) minmax(300px, 380px);
   }
 
   .stage-toolbar {
@@ -2034,11 +2115,17 @@ h2 {
 
   .stage-layout {
     grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    grid-template-areas:
+      "side main"
+      "side judges";
     gap: 14px;
   }
 
   .stage-layout.is-audience-view {
     grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    grid-template-areas:
+      "side main"
+      "side judges";
   }
 
   .panel-title {
@@ -2059,9 +2146,8 @@ h2 {
     height: 74px;
   }
 
-  .bottom-panels,
-  .bottom-panels.has-admin {
-    grid-template-columns: minmax(0, 1fr);
+  .stage-content-grid {
+    grid-template-columns: minmax(360px, 1fr) minmax(260px, 320px);
     gap: 16px;
   }
 
@@ -2110,8 +2196,6 @@ h2 {
 
   .welcome-grid,
   .stage-layout,
-  .bottom-panels,
-  .bottom-panels.has-admin,
   .rooms-top {
     grid-template-columns: 1fr;
   }
@@ -2121,7 +2205,7 @@ h2 {
     grid-template-areas:
       "main"
       "side"
-      "controls";
+      "judges";
   }
 
   .project-info {
@@ -2170,13 +2254,27 @@ h2 {
     grid-area: qr;
   }
 
+  .stage-content-grid,
+  .stage-participant-admin .participant-creator,
+  .stage-judge-panel .criteria-panel {
+    grid-template-columns: 1fr;
+  }
+
   .photo-board {
     min-height: 430px;
   }
 
+  .stage-chat-box {
+    min-height: 360px;
+  }
+
+  .stage-judge-panel {
+    min-height: auto;
+  }
+
   .ranking-panel {
     height: auto;
-    min-height: 680px;
+    min-height: 420px;
   }
 
   .player-list {

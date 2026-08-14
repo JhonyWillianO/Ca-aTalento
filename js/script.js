@@ -1553,7 +1553,7 @@ function renderStage() {
   $("#viewerPanel").classList.toggle("is-active", app.profile.role === "viewer" && live);
   $("#finishRoom").classList.toggle("is-active", ownerControlsActive);
   $("#participantAdmin").classList.toggle("is-active", ownerControlsActive);
-  $(".bottom-panels").classList.toggle("has-admin", ownerControlsActive);
+  $(".stage-layout").classList.toggle("has-admin", ownerControlsActive);
   if ((ownerControlsActive || app.profile.role === "teacher" || app.profile.role === "viewer") && live) renderQrCode(app.room.code);
 
   const alreadyScored = performer ? teacherScoredStudent(performer.id) : false;

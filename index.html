@@ -110,14 +110,6 @@
               <span>Convidados</span>
               <ul class="guest-list" id="guestList"></ul>
             </div>
-            <section class="log-box side-chat-box">
-              <div class="box-label">CHAT</div>
-              <ul class="score-list" id="scoreList"></ul>
-              <form class="chat-form" id="chatForm">
-                <input id="chatInput" type="text" maxlength="160" placeholder="Escreva no chat..." />
-                <button class="blue-button" type="submit">ENVIAR</button>
-              </form>
-            </section>
           </aside>
 
           <section class="show-area stage-main">
@@ -129,37 +121,46 @@
               </div>
             </div>
 
-            <div class="photo-board">
-              <div class="hint-card" id="stageTitle">PALCO</div>
-              <img id="performerPhoto" alt="" />
-              <strong id="performerName">Aguardando participante</strong>
-              <p id="performerDescription" class="performer-description"></p>
-            </div>
+            <div class="stage-content-grid">
+              <div class="photo-board">
+                <div class="hint-card" id="stageTitle">PALCO</div>
+                <img id="performerPhoto" alt="" />
+                <strong id="performerName">Aguardando participante</strong>
+                <p id="performerDescription" class="performer-description"></p>
+              </div>
 
-          </section>
-
-          <div class="bottom-panels stage-controls">
-              <section class="participant-admin-box" id="participantAdmin">
-                <div class="box-label wide-label">ADICIONAR PARTICIPANTES</div>
-                <form class="participant-creator" id="participantForm">
-                  <label class="field">
-                    <span>Nome</span>
-                    <input id="participantNameInput" type="text" maxlength="28" placeholder="Nome do participante" />
-                  </label>
-                  <label class="field participant-description-field">
-                    <span>Descricao</span>
-                    <textarea id="participantDescriptionInput" maxlength="140" placeholder="Musica, talento ou recado do participante"></textarea>
-                  </label>
-                  <label class="participant-photo-picker" for="participantPhotoInput">
-                    <img id="participantPhotoPreview" alt="" />
-                    <span class="edit-badge">+</span>
-                  </label>
-                  <input id="participantPhotoInput" type="file" accept="image/*" hidden />
-                  <button class="blue-button" type="submit">Adicionar participante</button>
+              <section class="log-box stage-chat-box">
+                <div class="box-label">CHAT</div>
+                <ul class="score-list" id="scoreList"></ul>
+                <form class="chat-form" id="chatForm">
+                  <input id="chatInput" type="text" maxlength="160" placeholder="Escreva no chat..." />
+                  <button class="blue-button" type="submit">ENVIAR</button>
                 </form>
               </section>
+            </div>
 
-              <section class="professor-box">
+            <section class="participant-admin-box stage-participant-admin" id="participantAdmin">
+              <div class="box-label wide-label">ADICIONAR PARTICIPANTES</div>
+              <form class="participant-creator" id="participantForm">
+                <label class="participant-photo-picker" for="participantPhotoInput">
+                  <img id="participantPhotoPreview" alt="" />
+                  <span class="edit-badge">+</span>
+                </label>
+                <input id="participantPhotoInput" type="file" accept="image/*" hidden />
+                <label class="field">
+                  <span>Nome</span>
+                  <input id="participantNameInput" type="text" maxlength="28" placeholder="Nome do participante" />
+                </label>
+                <label class="field participant-description-field">
+                  <span>Descricao</span>
+                  <textarea id="participantDescriptionInput" maxlength="140" placeholder="Talento ou recado"></textarea>
+                </label>
+                <button class="blue-button" type="submit">Adicionar participante</button>
+              </form>
+            </section>
+          </section>
+
+              <section class="professor-box stage-judge-panel">
                 <div class="box-label">JURADOS</div>
                 <div class="owner-code-box" id="ownerCodeBox">
                   <span>Codigo da sala</span>
@@ -217,8 +218,6 @@
                   </div>
                 </div>
               </section>
-
-          </div>
         </div>
       </section>
 
