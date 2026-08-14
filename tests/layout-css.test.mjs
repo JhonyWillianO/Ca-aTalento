@@ -21,6 +21,8 @@ assert.match(blockFor(".leave-room-button"), /align-self:\s*end\s*;/, "leave roo
 assert.match(blockFor(".stage-qr-slot"), /align-self:\s*end\s*;/, "QR code must sit near the stage instead of floating high");
 assert.match(blockFor(".stage-qr-slot canvas"), /width:\s*clamp\(74px,\s*8vw,\s*112px\)/, "QR code must shrink on smaller screens without leaving the toolbar");
 assert.match(blockFor(".photo-board"), /min-height:\s*clamp\(520px,\s*58vh,\s*720px\)/, "stage area must be larger than the old compact board");
+assert.match(blockFor(".ranking-panel"), /height:\s*calc\(100vh\s*-\s*32px\)/, "side panel must use nearly the full stage viewport height");
+assert.match(blockFor(".ranking-panel"), /min-height:\s*760px\s*;/, "side panel must stay tall enough to keep chat usable");
 assert.match(blockFor(".side-chat-box"), /flex:\s*1\s*;/, "chat must live under participants and guests in the side panel");
 assert.match(blockFor(".side-chat-box"), /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto\s*;/, "chat messages must scroll without hiding the input row");
 assert.match(blockFor(".side-chat-box .score-list"), /max-height:\s*none\s*;/, "side chat must not inherit the compact bottom-card message height");

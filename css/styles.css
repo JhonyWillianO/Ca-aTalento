@@ -914,8 +914,8 @@ h2 {
 }
 
 .ranking-panel {
-  height: calc(100vh - 130px);
-  min-height: 650px;
+  height: calc(100vh - 32px);
+  min-height: 760px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2176,7 +2176,7 @@ h2 {
 
   .ranking-panel {
     height: auto;
-    min-height: 520px;
+    min-height: 680px;
   }
 
   .player-list {
