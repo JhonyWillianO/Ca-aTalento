@@ -15,6 +15,8 @@ function blockFor(selector) {
 assert.match(blockFor(".show-area"), /min-width:\s*0\s*;/, "show area must shrink inside the stage grid");
 assert.match(blockFor(".participant-admin-box,\n.professor-box,\n.log-box"), /min-width:\s*0\s*;/, "bottom cards must be allowed to shrink");
 assert.match(blockFor(".stage-toolbar"), /grid-template-columns:\s*minmax\(132px,\s*auto\)\s+minmax\(140px,\s*1fr\)\s+minmax\(84px,\s*auto\)/, "stage toolbar must reserve left exit, centered logo, and right QR slots");
+assert.match(blockFor(".stage-toolbar"), /width:\s*min\(100%,\s*980px\)/, "stage toolbar controls must stay close to the stage instead of screen edges");
+assert.match(blockFor(".stage-center-logo"), /width:\s*clamp\(170px,\s*16vw,\s*260px\)/, "central stage logo must be larger");
 assert.match(blockFor(".stage-qr-slot canvas"), /width:\s*clamp\(74px,\s*8vw,\s*112px\)/, "QR code must shrink on smaller screens without leaving the toolbar");
 assert.match(blockFor(".photo-board"), /min-height:\s*clamp\(520px,\s*58vh,\s*720px\)/, "stage area must be larger than the old compact board");
 assert.match(blockFor(".side-chat-box"), /flex:\s*1\s*;/, "chat must live under participants and guests in the side panel");
@@ -22,6 +24,7 @@ assert.match(css, /@media\s*\(max-width:\s*1280px\)[\s\S]*?\.stage-layout\s*\{[\
 assert.match(css, /@media\s*\(max-width:\s*1280px\)[\s\S]*?\.bottom-panels\.has-admin\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/, "owner bottom panels must stack before notebook widths");
 assert.match(css, /@media\s*\(max-width:\s*900px\)[\s\S]*?\.stage-layout,[\s\S]*?\.bottom-panels,[\s\S]*?\.bottom-panels\.has-admin,[\s\S]*?\.rooms-top\s*\{[\s\S]*?grid-template-columns:\s*1fr\s*;/, "stage and bottom panels must stack at tablet widths");
 assert.match(css, /@media\s*\(max-width:\s*1440px\)[\s\S]*?\.stage-toolbar\s*\{[\s\S]*?grid-template-columns:\s*minmax\(126px,\s*auto\)\s+minmax\(120px,\s*1fr\)\s+minmax\(74px,\s*auto\)/, "stage toolbar must keep leave, logo, and QR visible on smaller monitors");
+assert.match(css, /body\[data-screen="stage"\]\s+\.game-header\s*\{[\s\S]*?display:\s*none\s*;/, "stage screen must not show a second header logo");
 assert.match(html, /class="[^"]*stage-main[^"]*"/, "stage screen must have a named central stage area");
 assert.match(html, /class="[^"]*room-side-panel[^"]*"/, "stage screen must have a named side panel for participants and guests");
 assert.match(html, /room-side-panel[\s\S]*?id="queueList"[\s\S]*?id="guestList"[\s\S]*?side-chat-box[\s\S]*?id="chatForm"/, "side panel must show participants, guests, then chat");

@@ -154,6 +154,10 @@ body[data-screen="welcome"] .game-header {
   display: none;
 }
 
+body[data-screen="stage"] .game-header {
+  display: none;
+}
+
 .app-shell {
   width: min(1510px, calc(100% - 72px));
   margin: 0 auto 28px;
@@ -1050,12 +1054,14 @@ h2 {
 }
 
 .stage-toolbar {
-  width: 100%;
+  width: min(100%, 980px);
   min-width: 0;
+  justify-self: center;
   display: grid;
   grid-template-columns: minmax(132px, auto) minmax(140px, 1fr) minmax(84px, auto);
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+  margin: -8px auto -8px;
 }
 
 .leave-room-button {
@@ -1069,8 +1075,8 @@ h2 {
 
 .stage-center-logo {
   justify-self: center;
-  width: clamp(132px, 13vw, 220px);
-  height: clamp(92px, 10vw, 160px);
+  width: clamp(170px, 16vw, 260px);
+  height: clamp(116px, 12vw, 190px);
 }
 
 .stage-qr-slot {
@@ -1998,6 +2004,7 @@ h2 {
   .stage-toolbar {
     grid-template-columns: minmax(126px, auto) minmax(120px, 1fr) minmax(74px, auto);
     gap: 10px;
+    width: min(100%, 900px);
   }
 
   .leave-room-button {
@@ -2026,8 +2033,8 @@ h2 {
   }
 
   .stage-center-logo {
-    width: 118px;
-    height: 88px;
+    width: 150px;
+    height: 110px;
   }
 
   .stage-qr-slot {
