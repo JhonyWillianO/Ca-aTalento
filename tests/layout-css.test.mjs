@@ -14,7 +14,7 @@ function blockFor(selector) {
 
 assert.match(blockFor(".show-area"), /min-width:\s*0\s*;/, "show area must shrink inside the stage grid");
 assert.match(blockFor(".participant-admin-box,\n.professor-box,\n.log-box"), /min-width:\s*0\s*;/, "bottom cards must be allowed to shrink");
-assert.match(blockFor(".stage-layout"), /grid-template-columns:\s*minmax\(260px,\s*310px\)\s+minmax\(0,\s*1fr\)\s+minmax\(330px,\s*460px\)/, "desktop room must use side, stage, and juror columns");
+assert.match(blockFor(".stage-layout"), /grid-template-columns:\s*minmax\(240px,\s*300px\)\s+minmax\(0,\s*1fr\)\s+minmax\(330px,\s*420px\)/, "desktop room must use balanced side, stage, and juror columns");
 assert.match(blockFor(".stage-layout"), /"side main judges"/, "desktop room grid must follow the reference layout");
 assert.match(blockFor(".stage-toolbar"), /grid-template-columns:\s*minmax\(132px,\s*auto\)\s+minmax\(140px,\s*1fr\)\s+minmax\(84px,\s*auto\)/, "stage toolbar must reserve left exit, centered logo, and right QR slots");
 assert.match(blockFor(".stage-toolbar"), /width:\s*min\(100%,\s*760px\)/, "stage toolbar controls must stay close to the stage instead of screen edges");
@@ -22,13 +22,13 @@ assert.match(blockFor(".stage-center-logo"), /width:\s*clamp\(170px,\s*16vw,\s*2
 assert.match(blockFor(".leave-room-button"), /align-self:\s*end\s*;/, "leave room button must sit near the stage instead of floating high");
 assert.match(blockFor(".stage-qr-slot"), /align-self:\s*end\s*;/, "QR code must sit near the stage instead of floating high");
 assert.match(blockFor(".stage-qr-slot canvas"), /width:\s*clamp\(74px,\s*8vw,\s*112px\)/, "QR code must shrink on smaller screens without leaving the toolbar");
-assert.match(blockFor(".stage-content-grid"), /grid-template-columns:\s*minmax\(390px,\s*1fr\)\s+minmax\(280px,\s*340px\)/, "stage and chat must sit side by side like the reference");
+assert.match(blockFor(".stage-content-grid"), /grid-template-columns:\s*minmax\(420px,\s*1fr\)\s+minmax\(260px,\s*310px\)/, "stage and chat must sit side by side like the reference");
 assert.match(blockFor(".photo-board"), /min-height:\s*clamp\(430px,\s*52vh,\s*560px\)/, "stage board must fit beside the chat column");
 assert.match(blockFor(".ranking-panel"), /height:\s*calc\(100vh\s*-\s*32px\)/, "side panel must use nearly the full stage viewport height");
 assert.match(blockFor(".ranking-panel"), /min-height:\s*760px\s*;/, "side panel must stay tall enough to keep chat usable");
-assert.match(css, /\.side-chat-box,\s*\.stage-chat-box\s*\{[\s\S]*?grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto\s*;/, "chat messages must scroll without hiding the input row");
+assert.match(css, /\.side-chat-box,\s*\.stage-chat-box\s*\{[\s\S]*?grid-template-rows:\s*minmax\(0,\s*1fr\)\s+auto\s*;/, "chat messages must scroll without stretching the input row");
 assert.match(css, /\.side-chat-box\s+\.score-list,\s*\.stage-chat-box\s+\.score-list\s*\{[\s\S]*?max-height:\s*none\s*;/, "stage chat must not inherit the compact bottom-card message height");
-assert.match(css, /\.side-chat-box\s+\.chat-form,\s*\.stage-chat-box\s+\.chat-form\s*\{[\s\S]*?flex-shrink:\s*0\s*;/, "chat form must remain visible when messages fill the chat panel");
+assert.match(css, /\.side-chat-box\s+\.chat-form,\s*\.stage-chat-box\s+\.chat-form\s*\{[\s\S]*?grid-row:\s*2\s*;[\s\S]*?flex-shrink:\s*0\s*;/, "chat form must remain a normal-height bottom row");
 assert.match(blockFor(".stage-judge-panel"), /grid-area:\s*judges\s*;/, "juror panel must occupy the right column");
 assert.match(blockFor(".stage-judge-panel .criteria-panel"), /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/, "juror criteria must use a compact two-column desktop layout");
 assert.match(css, /@media\s*\(max-width:\s*1280px\)[\s\S]*?\.stage-layout\s*\{[\s\S]*?grid-template-areas:[\s\S]*?"side main"[\s\S]*?"side judges"/, "stage layout must compact to two columns before notebook widths");

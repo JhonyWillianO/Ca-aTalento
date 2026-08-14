@@ -851,7 +851,7 @@ h2 {
   width: min(1700px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(260px, 310px) minmax(0, 1fr) minmax(330px, 460px);
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(330px, 420px);
   grid-template-areas:
     "side main judges";
   gap: 24px;
@@ -864,7 +864,7 @@ h2 {
 }
 
 .stage-layout.is-audience-view {
-  grid-template-columns: minmax(260px, 310px) minmax(0, 1fr) minmax(330px, 460px);
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(330px, 420px);
   grid-template-areas:
     "side main judges";
 }
@@ -1101,7 +1101,7 @@ h2 {
 .stage-content-grid {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(390px, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(420px, 1fr) minmax(260px, 310px);
   gap: 22px;
   align-items: stretch;
 }
@@ -1251,7 +1251,7 @@ h2 {
 .side-chat-box,
 .stage-chat-box {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   min-height: 0;
   border: 0;
   overflow: hidden;
@@ -1288,6 +1288,7 @@ h2 {
 
 .side-chat-box .score-list,
 .stage-chat-box .score-list {
+  grid-row: 1;
   min-height: 0;
   max-height: none;
   overflow: auto;
@@ -1295,6 +1296,7 @@ h2 {
 
 .side-chat-box .chat-form,
 .stage-chat-box .chat-form {
+  grid-row: 2;
   flex-shrink: 0;
 }
 
@@ -2087,12 +2089,12 @@ h2 {
   }
 
   .stage-layout {
-    grid-template-columns: minmax(240px, 290px) minmax(0, 1fr) minmax(300px, 380px);
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(300px, 340px);
     gap: 18px;
   }
 
   .stage-layout.is-audience-view {
-    grid-template-columns: minmax(240px, 290px) minmax(0, 1fr) minmax(300px, 380px);
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(300px, 340px);
   }
 
   .stage-toolbar {
@@ -2147,7 +2149,7 @@ h2 {
   }
 
   .stage-content-grid {
-    grid-template-columns: minmax(360px, 1fr) minmax(260px, 320px);
+    grid-template-columns: minmax(380px, 1fr) minmax(250px, 300px);
     gap: 16px;
   }
 
