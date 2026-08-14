@@ -1065,9 +1065,11 @@ h2 {
 }
 
 .leave-room-button {
+  align-self: end;
   justify-self: start;
   min-width: 150px;
   min-height: 46px;
+  margin-bottom: 8px;
   border-width: 4px;
   border-radius: 18px;
   font-size: 16px;
@@ -1080,9 +1082,11 @@ h2 {
 }
 
 .stage-qr-slot {
+  align-self: end;
   justify-self: end;
   display: grid;
   place-items: center;
+  margin-bottom: 8px;
   padding: 8px;
   border: 3px solid #9db1bf;
   border-radius: 10px;
@@ -1232,10 +1236,13 @@ h2 {
 .side-chat-box {
   min-height: 220px;
   flex: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   border: 0;
   border-top: 2px solid #d8e0e6;
   border-radius: 0;
   box-shadow: none;
+  overflow: hidden;
   padding: 38px 16px 16px;
 }
 
@@ -1252,7 +1259,13 @@ h2 {
 }
 
 .side-chat-box .score-list {
-  max-height: min(22vh, 180px);
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+}
+
+.side-chat-box .chat-form {
+  flex-shrink: 0;
 }
 
 .owner-code-box {

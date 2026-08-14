@@ -17,9 +17,14 @@ assert.match(blockFor(".participant-admin-box,\n.professor-box,\n.log-box"), /mi
 assert.match(blockFor(".stage-toolbar"), /grid-template-columns:\s*minmax\(132px,\s*auto\)\s+minmax\(140px,\s*1fr\)\s+minmax\(84px,\s*auto\)/, "stage toolbar must reserve left exit, centered logo, and right QR slots");
 assert.match(blockFor(".stage-toolbar"), /width:\s*min\(100%,\s*980px\)/, "stage toolbar controls must stay close to the stage instead of screen edges");
 assert.match(blockFor(".stage-center-logo"), /width:\s*clamp\(170px,\s*16vw,\s*260px\)/, "central stage logo must be larger");
+assert.match(blockFor(".leave-room-button"), /align-self:\s*end\s*;/, "leave room button must sit near the stage instead of floating high");
+assert.match(blockFor(".stage-qr-slot"), /align-self:\s*end\s*;/, "QR code must sit near the stage instead of floating high");
 assert.match(blockFor(".stage-qr-slot canvas"), /width:\s*clamp\(74px,\s*8vw,\s*112px\)/, "QR code must shrink on smaller screens without leaving the toolbar");
 assert.match(blockFor(".photo-board"), /min-height:\s*clamp\(520px,\s*58vh,\s*720px\)/, "stage area must be larger than the old compact board");
 assert.match(blockFor(".side-chat-box"), /flex:\s*1\s*;/, "chat must live under participants and guests in the side panel");
+assert.match(blockFor(".side-chat-box"), /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto\s*;/, "chat messages must scroll without hiding the input row");
+assert.match(blockFor(".side-chat-box .score-list"), /max-height:\s*none\s*;/, "side chat must not inherit the compact bottom-card message height");
+assert.match(blockFor(".side-chat-box .chat-form"), /flex-shrink:\s*0\s*;/, "chat form must remain visible when messages fill the side panel");
 assert.match(css, /@media\s*\(max-width:\s*1280px\)[\s\S]*?\.stage-layout\s*\{[\s\S]*?minmax\(240px,\s*300px\)\s+minmax\(0,\s*1fr\)/, "stage layout must compact before notebook widths");
 assert.match(css, /@media\s*\(max-width:\s*1280px\)[\s\S]*?\.bottom-panels\.has-admin\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/, "owner bottom panels must stack before notebook widths");
 assert.match(css, /@media\s*\(max-width:\s*900px\)[\s\S]*?\.stage-layout,[\s\S]*?\.bottom-panels,[\s\S]*?\.bottom-panels\.has-admin,[\s\S]*?\.rooms-top\s*\{[\s\S]*?grid-template-columns:\s*1fr\s*;/, "stage and bottom panels must stack at tablet widths");
