@@ -98,52 +98,52 @@ const BLOCKED_EXACT_WORDS = ["cu"];
 const IMAGE_BLOCKED_TERMS = ["18", "adult", "nude", "nudes", "pelada", "pelado", "porn", "porno", "sexo", "xxx"];
 
 const SOUND_FILES = {
-  drumRoll: "./scratchonix-drum-roll-for-victory-366448.mp3",
-  fanfare: "./u_ss015dykrt-brass-fanfare-with-timpani-and-winchimes-reverberated-146260.mp3",
-  victory: "./u_it78ck90s3-orchestral-win-331233.mp3",
-  defeat: "./coghezzi-game-over-orchestral-stinger-cartoon-defeat-546515.mp3",
-  voteBad: "./freesound_community-goodresult-82807.mp3",
-  voteGood: "./freesound_community-palmas-maesaif-14571.mp3",
-  voteGreat: "./driken5482-applause-cheer-236786.mp3"
+  drumRoll: "./assets/audio/scratchonix-drum-roll-for-victory-366448.mp3",
+  fanfare: "./assets/audio/u_ss015dykrt-brass-fanfare-with-timpani-and-winchimes-reverberated-146260.mp3",
+  victory: "./assets/audio/u_it78ck90s3-orchestral-win-331233.mp3",
+  defeat: "./assets/audio/coghezzi-game-over-orchestral-stinger-cartoon-defeat-546515.mp3",
+  voteBad: "./assets/audio/freesound_community-goodresult-82807.mp3",
+  voteGood: "./assets/audio/freesound_community-palmas-maesaif-14571.mp3",
+  voteGreat: "./assets/audio/driken5482-applause-cheer-236786.mp3"
 };
 
 const STAGE_EFFECT_FILES = [
-  "./efeitos%20sonoros/ai-gostei-rodrigo-faro.mp3",
-  "./efeitos%20sonoros/aiaiai-rodrigo-faro.mp3",
-  "./efeitos%20sonoros/aii-mamae.mp3",
-  "./efeitos%20sonoros/ai-que-delicia-mickey.mp3",
-  "./efeitos%20sonoros/cavalo-ratinho.mp3",
-  "./efeitos%20sonoros/danca-gatinho-danca-hora-do-faro.mp3",
-  "./efeitos%20sonoros/demaals.mp3",
-  "./efeitos%20sonoros/e-brincadeira-hein-rodrigo-faro.mp3",
-  "./efeitos%20sonoros/efeito-balancando.mp3",
-  "./efeitos%20sonoros/efeito-ring.mp3",
-  "./efeitos%20sonoros/ele-g0sta.mp3",
-  "./efeitos%20sonoros/me-chama-de-lord.mp3",
-  "./efeitos%20sonoros/m-efeito-sonoro-cutuco-correndo.mp3",
-  "./efeitos%20sonoros/m-e-o-w.mp3",
-  "./efeitos%20sonoros/olha-la-rodrigo-faro.mp3",
-  "./efeitos%20sonoros/quack-efeito-sonoro.mp3",
-  "./efeitos%20sonoros/que-cara-mais-sem-graca-rodrigo-faro.mp3",
-  "./efeitos%20sonoros/que-isso-moreno.mp3",
-  "./efeitos%20sonoros/que-papelao-hein-efeito-sonoro.mp3",
-  "./efeitos%20sonoros/rei-das-feras-plantado-one-punch-man-pt-br.mp3",
-  "./efeitos%20sonoros/ronaldo.mp3",
-  "./efeitos%20sonoros/saitama-voce-apareceu-mesmo-pt-br.mp3",
-  "./efeitos%20sonoros/toma-milk-shake-de-morango_bQhZ8mn.mp3",
-  "./efeitos%20sonoros/uou-efeito-sonoro.mp3",
-  "./efeitos%20sonoros/wooow-26.mp3",
-  "./efeitos%20sonoros/zoeira-efeito-brinquedo-de-borracha.mp3",
-  "./efeitos%20sonoros/zoeira-efeito-roblox-morre.mp3"
+  "./assets/sfx/efeitos-sonoros/ai-gostei-rodrigo-faro.mp3",
+  "./assets/sfx/efeitos-sonoros/aiaiai-rodrigo-faro.mp3",
+  "./assets/sfx/efeitos-sonoros/aii-mamae.mp3",
+  "./assets/sfx/efeitos-sonoros/ai-que-delicia-mickey.mp3",
+  "./assets/sfx/efeitos-sonoros/cavalo-ratinho.mp3",
+  "./assets/sfx/efeitos-sonoros/danca-gatinho-danca-hora-do-faro.mp3",
+  "./assets/sfx/efeitos-sonoros/demaals.mp3",
+  "./assets/sfx/efeitos-sonoros/e-brincadeira-hein-rodrigo-faro.mp3",
+  "./assets/sfx/efeitos-sonoros/efeito-balancando.mp3",
+  "./assets/sfx/efeitos-sonoros/efeito-ring.mp3",
+  "./assets/sfx/efeitos-sonoros/ele-g0sta.mp3",
+  "./assets/sfx/efeitos-sonoros/me-chama-de-lord.mp3",
+  "./assets/sfx/efeitos-sonoros/m-efeito-sonoro-cutuco-correndo.mp3",
+  "./assets/sfx/efeitos-sonoros/m-e-o-w.mp3",
+  "./assets/sfx/efeitos-sonoros/olha-la-rodrigo-faro.mp3",
+  "./assets/sfx/efeitos-sonoros/quack-efeito-sonoro.mp3",
+  "./assets/sfx/efeitos-sonoros/que-cara-mais-sem-graca-rodrigo-faro.mp3",
+  "./assets/sfx/efeitos-sonoros/que-isso-moreno.mp3",
+  "./assets/sfx/efeitos-sonoros/que-papelao-hein-efeito-sonoro.mp3",
+  "./assets/sfx/efeitos-sonoros/rei-das-feras-plantado-one-punch-man-pt-br.mp3",
+  "./assets/sfx/efeitos-sonoros/ronaldo.mp3",
+  "./assets/sfx/efeitos-sonoros/saitama-voce-apareceu-mesmo-pt-br.mp3",
+  "./assets/sfx/efeitos-sonoros/toma-milk-shake-de-morango_bQhZ8mn.mp3",
+  "./assets/sfx/efeitos-sonoros/uou-efeito-sonoro.mp3",
+  "./assets/sfx/efeitos-sonoros/wooow-26.mp3",
+  "./assets/sfx/efeitos-sonoros/zoeira-efeito-brinquedo-de-borracha.mp3",
+  "./assets/sfx/efeitos-sonoros/zoeira-efeito-roblox-morre.mp3"
 ];
 
 const JOIN_SOUND_FILES = [
-  "./efeitos%20sonoros/ai-gostei-rodrigo-faro.mp3",
-  "./efeitos%20sonoros/aiaiai-rodrigo-faro.mp3",
-  "./efeitos%20sonoros/efeito-ring.mp3",
-  "./efeitos%20sonoros/olha-la-rodrigo-faro.mp3",
-  "./efeitos%20sonoros/uou-efeito-sonoro.mp3",
-  "./efeitos%20sonoros/zoeira-efeito-brinquedo-de-borracha.mp3"
+  "./assets/sfx/efeitos-sonoros/ai-gostei-rodrigo-faro.mp3",
+  "./assets/sfx/efeitos-sonoros/aiaiai-rodrigo-faro.mp3",
+  "./assets/sfx/efeitos-sonoros/efeito-ring.mp3",
+  "./assets/sfx/efeitos-sonoros/olha-la-rodrigo-faro.mp3",
+  "./assets/sfx/efeitos-sonoros/uou-efeito-sonoro.mp3",
+  "./assets/sfx/efeitos-sonoros/zoeira-efeito-brinquedo-de-borracha.mp3"
 ];
 
 let scannerStream = null;
@@ -1322,11 +1322,11 @@ function currentScoreboardKey(room = app.room) {
 }
 
 function rankAwardAsset(rank) {
-  if (rank === 1) return { symbol: "1", label: "Coroa de ouro", className: "gold", image: "./CoroaDeOuro.png" };
-  if (rank === 2) return { symbol: "2", label: "Coroa de prata", className: "silver", image: "./CoroaDePrata.png" };
-  if (rank === 3) return { symbol: "3", label: "Coroa de bronze", className: "bronze", image: "./CoroaDeBronze.png" };
-  if (rank === 4) return { symbol: "4", label: "Medalha de prata", className: "silver-medal", image: "./Medalha%20de%20Prata%20com%20Capivara%20Cantora.png" };
-  return { symbol: "*", label: "Medalha de bronze", className: "bronze-medal", image: "./Medalha%20de%20bronze%20com%20capivara%20coroada.png" };
+  if (rank === 1) return { symbol: "1", label: "Coroa de ouro", className: "gold", image: "./assets/images/CoroaDeOuro.png" };
+  if (rank === 2) return { symbol: "2", label: "Coroa de prata", className: "silver", image: "./assets/images/CoroaDePrata.png" };
+  if (rank === 3) return { symbol: "3", label: "Coroa de bronze", className: "bronze", image: "./assets/images/CoroaDeBronze.png" };
+  if (rank === 4) return { symbol: "4", label: "Medalha de prata", className: "silver-medal", image: "./assets/images/Medalha%20de%20Prata%20com%20Capivara%20Cantora.png" };
+  return { symbol: "*", label: "Medalha de bronze", className: "bronze-medal", image: "./assets/images/Medalha%20de%20bronze%20com%20capivara%20coroada.png" };
 }
 
 function createRankingItem(student, index, options = {}) {

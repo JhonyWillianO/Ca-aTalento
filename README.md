@@ -34,6 +34,16 @@ Aplicativo web do Projeto Caca-Talentos, feito para uma competicao de apresentac
 2. Abra o arquivo `index.html`.
 3. Use a extensao Live Server ou abra o arquivo direto no navegador.
 
+## Estrutura de pastas
+
+- `index.html`: tela principal do app.
+- `css/styles.css`: estilos visuais e responsividade.
+- `js/script.js`: regras da sala, votacao, chat, placar e sincronizacao.
+- `assets/images/`: logos, coroas, medalhas e imagens do projeto.
+- `assets/audio/`: sons principais do app, como vitoria, derrota e votos.
+- `assets/sfx/efeitos-sonoros/`: efeitos aleatorios de entrada e palco.
+- `netlify/functions/`: API das salas no Netlify.
+
 ## Teste rapido
 
 Abra o `index.html` em duas abas do mesmo navegador:
