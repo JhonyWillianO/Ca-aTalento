@@ -1031,10 +1031,12 @@ h2 {
 
 .invite-box {
   display: none;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
+  justify-content: normal;
+  justify-self: center;
   gap: 14px;
-  width: 100%;
+  width: min(100%, 920px);
   min-height: 104px;
   min-width: 0;
   box-sizing: border-box;
@@ -1060,7 +1062,7 @@ h2 {
 }
 
 .invite-box.is-active {
-  display: flex;
+  display: grid;
 }
 
 #inviteText {
@@ -1092,7 +1094,7 @@ h2 {
 .invite-box canvas {
   width: 96px;
   height: 96px;
-  flex: 0 0 96px;
+  justify-self: end;
   image-rendering: pixelated;
 }
 
@@ -1933,6 +1935,7 @@ h2 {
 
   .invite-box {
     gap: 10px;
+    width: min(100%, 760px);
     padding: 8px 12px;
   }
 }
@@ -2015,7 +2018,6 @@ h2 {
   .invite-box canvas {
     width: 90px;
     height: 90px;
-    flex-basis: 90px;
   }
 
   .ranking-panel {
@@ -2245,7 +2247,6 @@ h2 {
   .invite-box canvas {
     width: 78px;
     height: 78px;
-    flex-basis: 78px;
   }
 }
 
