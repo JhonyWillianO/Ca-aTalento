@@ -848,7 +848,40 @@ h2 {
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+  grid-template-areas:
+    "side main"
+    "side controls";
   gap: 26px;
+  align-items: start;
+}
+
+.stage-layout.is-owner-view {
+  grid-template-areas:
+    "side main"
+    "side controls";
+}
+
+.stage-layout.is-audience-view {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-areas:
+    "main side"
+    "controls side";
+}
+
+.room-side-panel {
+  grid-area: side;
+}
+
+.stage-main {
+  grid-area: main;
+}
+
+.stage-controls {
+  grid-area: controls;
+}
+
+.stage-layout.is-audience-view .participant-admin-box {
+  display: none !important;
 }
 
 .ranking-panel,
@@ -1190,7 +1223,7 @@ h2 {
 
 .bottom-panels {
   display: grid;
-  grid-template-columns: 1fr 330px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   gap: 24px;
 }
 
@@ -1929,6 +1962,10 @@ h2 {
     gap: 18px;
   }
 
+  .stage-layout.is-audience-view {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  }
+
   .stage-toolbar {
     justify-content: center;
     flex-wrap: wrap;
@@ -1949,6 +1986,10 @@ h2 {
   .stage-layout {
     grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
     gap: 14px;
+  }
+
+  .stage-layout.is-audience-view {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
   }
 
   .panel-title {
@@ -2020,6 +2061,14 @@ h2 {
   .bottom-panels.has-admin,
   .rooms-top {
     grid-template-columns: 1fr;
+  }
+
+  .stage-layout.is-owner-view,
+  .stage-layout.is-audience-view {
+    grid-template-areas:
+      "main"
+      "side"
+      "controls";
   }
 
   .project-info {

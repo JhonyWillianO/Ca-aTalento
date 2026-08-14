@@ -1528,6 +1528,8 @@ function renderStage() {
   const ownerControlsActive = isRoomOwner() && live;
   const isJudge = app.profile.role === "teacher";
   const canUseShowControls = (isJudge || ownerControlsActive) && live;
+  $(".stage-layout").classList.toggle("is-owner-view", ownerControlsActive);
+  $(".stage-layout").classList.toggle("is-audience-view", !ownerControlsActive);
   const canSeeRoomCode = isRoomOwner();
   const roomCodeText = canSeeRoomCode ? visibleRoomCode(app.room.code) : "Privado";
   $("#currentCode").textContent = roomCodeText;
