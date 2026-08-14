@@ -39,6 +39,7 @@ const app = {
   room: null,
   selectedRoom: "",
   pendingInviteRoom: "",
+  showRoomCode: false,
   channel: createSyncChannel()
 };
 
@@ -849,6 +850,10 @@ function isRoomOwner(room = app.room) {
   return roomOwnerId(room) === app.profile.id;
 }
 
+function visibleRoomCode(code) {
+  return app.showRoomCode ? code : "******";
+}
+
 function resetRoomForNewRound(room) {
   room.status = "live";
   room.roundId = makeId();
@@ -1524,9 +1529,16 @@ function renderStage() {
   const isJudge = app.profile.role === "teacher";
   const canUseShowControls = (isJudge || ownerControlsActive) && live;
   const canSeeRoomCode = isRoomOwner();
-  $("#currentCode").textContent = canSeeRoomCode ? app.room.code : "Privado";
-  $("#inviteCode").textContent = canSeeRoomCode ? app.room.code : "QR Code";
+  const roomCodeText = canSeeRoomCode ? visibleRoomCode(app.room.code) : "Privado";
+  $("#currentCode").textContent = roomCodeText;
+  $("#inviteCode").textContent = canSeeRoomCode ? roomCodeText : "QR Code";
   $("#copyCode").style.display = canSeeRoomCode ? "inline-grid" : "none";
+  $$("[data-toggle-room-code]").forEach((button) => {
+    button.style.display = canSeeRoomCode ? "inline-grid" : "none";
+    button.textContent = app.showRoomCode ? "🙈" : "👁";
+    button.title = app.showRoomCode ? "Ocultar codigo" : "Mostrar codigo";
+    button.setAttribute("aria-label", button.title);
+  });
   $("#inviteText").style.display = canSeeRoomCode ? "block" : "none";
   $("#stageTitle").textContent = app.room.status === "finished" ? "ENCERRADO" : "PALCO";
   $("#performerName").textContent = (performer && performer.name) || "Aguardando participante";
@@ -1859,6 +1871,14 @@ $("#copyCode").addEventListener("click", async () => {
   playActionSound();
   $("#copyCode").textContent = "copiado";
   setTimeout(() => ($("#copyCode").textContent = "copiar"), 900);
+});
+
+$$("[data-toggle-room-code]").forEach((button) => {
+  button.addEventListener("click", () => {
+    app.showRoomCode = !app.showRoomCode;
+    playUiClickSound();
+    renderStage();
+  });
 });
 
 $$("[data-criterion]").forEach((input) => {

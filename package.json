@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "npm run test:layout && npm run test:code",
+    "test:code": "node tests/code-visibility.test.mjs",
     "test:layout": "node tests/layout-css.test.mjs"
   },
   "dependencies": {

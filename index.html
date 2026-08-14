@@ -107,7 +107,10 @@
             <div class="panel-title">
               <span>Sala</span>
               <strong id="currentCode">---</strong>
-              <button class="mini-button" id="copyCode" title="Copiar codigo">copiar</button>
+              <div class="code-actions">
+                <button class="mini-button" id="copyCode" title="Copiar codigo">copiar</button>
+                <button class="mini-button code-eye-button" data-toggle-room-code type="button" title="Mostrar codigo" aria-label="Mostrar codigo">&#128065;</button>
+              </div>
             </div>
             <div class="side-section-title">Participantes</div>
             <ul class="player-list" id="queueList"></ul>
@@ -126,7 +129,10 @@
             <section class="invite-box" id="inviteBox">
               <div id="inviteText">
                 <span>Convite da sala</span>
-                <strong id="inviteCode">---</strong>
+                <div class="invite-code-line">
+                  <strong id="inviteCode">---</strong>
+                  <button class="mini-button code-eye-button" data-toggle-room-code type="button" title="Mostrar codigo" aria-label="Mostrar codigo">&#128065;</button>
+                </div>
                 <p>Jurados entram com este codigo. Convidados entram pelo QR Code.</p>
               </div>
               <canvas id="qrCanvas" width="132" height="132" aria-label="QR Code da sala"></canvas>
