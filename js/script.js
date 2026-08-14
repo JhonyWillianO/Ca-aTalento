@@ -1533,7 +1533,6 @@ function renderStage() {
   const canSeeRoomCode = isRoomOwner();
   const roomCodeText = canSeeRoomCode ? visibleRoomCode(app.room.code) : "Privado";
   $("#currentCode").textContent = roomCodeText;
-  $("#inviteCode").textContent = canSeeRoomCode ? roomCodeText : "QR Code";
   $("#copyCode").style.display = canSeeRoomCode ? "inline-grid" : "none";
   $$("[data-toggle-room-code]").forEach((button) => {
     button.style.display = canSeeRoomCode ? "inline-grid" : "none";
@@ -1541,7 +1540,7 @@ function renderStage() {
     button.title = app.showRoomCode ? "Ocultar codigo" : "Mostrar codigo";
     button.setAttribute("aria-label", button.title);
   });
-  $("#inviteText").style.display = canSeeRoomCode ? "block" : "none";
+  $("#ownerCodeBox").classList.toggle("is-active", canSeeRoomCode);
   $("#stageTitle").textContent = app.room.status === "finished" ? "ENCERRADO" : "PALCO";
   $("#performerName").textContent = (performer && performer.name) || "Aguardando participante";
   $("#performerDescription").textContent = (performer && performer.description) || "";
@@ -1553,7 +1552,6 @@ function renderStage() {
   $("#teacherPanel").classList.toggle("is-active", canUseShowControls);
   $("#viewerPanel").classList.toggle("is-active", app.profile.role === "viewer" && live);
   $("#finishRoom").classList.toggle("is-active", ownerControlsActive);
-  $("#inviteBox").classList.toggle("is-active", (ownerControlsActive || app.profile.role === "teacher" || app.profile.role === "viewer") && live);
   $("#participantAdmin").classList.toggle("is-active", ownerControlsActive);
   $(".bottom-panels").classList.toggle("has-admin", ownerControlsActive);
   if ((ownerControlsActive || app.profile.role === "teacher" || app.profile.role === "viewer") && live) renderQrCode(app.room.code);
@@ -1562,14 +1560,14 @@ function renderStage() {
   const voteStatus = performer ? teacherVoteStatus(performer.id) : { votedCount: 0, total: 0, complete: false };
   const nextStatus = performer ? teacherNextStatus(performer.id) : { confirmedCount: 0, total: 0, complete: false };
   const alreadyConfirmedNext = performer ? teacherConfirmedNext(performer.id) : false;
-  const ownerCanAdvance = ownerControlsActive && voteStatus.complete;
   const judgeMustWaitNext = isJudge && alreadyConfirmedNext;
   const lastStudentOnStage = Boolean(performer) && isLastStudent();
   $(".criteria-panel").style.display = isJudge ? "grid" : "none";
   $("#sendScore").style.display = isJudge ? "inline-block" : "none";
   $("#sendScore").disabled = !isJudge || !performer || alreadyScored;
   $("#sendScore").textContent = alreadyScored ? "NOTA ENVIADA" : "DAR NOTA";
-  $("#nextStudent").disabled = !performer || !voteStatus.complete || (!ownerCanAdvance && judgeMustWaitNext);
+  $("#nextStudent").style.display = isJudge ? "inline-block" : "none";
+  $("#nextStudent").disabled = !isJudge || !performer || !voteStatus.complete || judgeMustWaitNext;
   $("#nextStudent").title = !voteStatus.complete
     ? `Aguardando notas dos jurados: ${voteStatus.votedCount}/${voteStatus.total}`
     : judgeMustWaitNext
@@ -1940,15 +1938,8 @@ $("#nextStudent").addEventListener("click", async () => {
     return;
   }
 
-  if (isRoomOwner(room)) {
-    await advanceRoom(room);
-    render();
-    if (app.room.status === "finished") showScreen("scoreboard");
-    return;
-  }
-
   if (app.profile.role !== "teacher") {
-    showNotice("Somente jurados ou o organizador podem passar para o proximo participante.", "Permissao negada", "warning");
+    showNotice("Somente jurados podem passar para o proximo participante.", "Permissao negada", "warning");
     return;
   }
 

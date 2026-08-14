@@ -847,7 +847,7 @@ h2 {
   width: min(1510px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+  grid-template-columns: minmax(280px, 390px) minmax(0, 1fr);
   grid-template-areas:
     "side main"
     "side controls";
@@ -862,10 +862,10 @@ h2 {
 }
 
 .stage-layout.is-audience-view {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-columns: minmax(280px, 390px) minmax(0, 1fr);
   grid-template-areas:
-    "main side"
-    "controls side";
+    "side main"
+    "side controls";
 }
 
 .room-side-panel {
@@ -903,7 +903,6 @@ h2 {
 .participant-admin-box:hover,
 .professor-box:hover,
 .log-box:hover,
-.invite-box:hover,
 .public-summary:hover {
   transform: translateY(-3px);
   border-color: rgba(220, 174, 49, 0.9);
@@ -913,6 +912,8 @@ h2 {
 .ranking-panel {
   height: calc(100vh - 130px);
   min-height: 650px;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -948,8 +949,6 @@ h2 {
 }
 
 .code-actions {
-  grid-row: 1 / 3;
-  grid-column: 2;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -972,7 +971,7 @@ h2 {
 }
 
 .player-list {
-  max-height: calc(100% - 230px);
+  max-height: 42%;
   overflow: auto;
 }
 
@@ -990,6 +989,11 @@ h2 {
 .side-section {
   padding: 12px 16px 16px;
   border-top: 2px solid #d8e0e6;
+}
+
+.room-side-panel .side-section {
+  max-height: 22%;
+  overflow: auto;
 }
 
 .side-section > span {
@@ -1042,22 +1046,49 @@ h2 {
 .show-area {
   min-width: 0;
   display: grid;
-  gap: 24px;
+  gap: 18px;
 }
 
 .stage-toolbar {
-  display: flex;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(132px, auto) minmax(140px, 1fr) minmax(84px, auto);
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
 }
 
 .leave-room-button {
+  justify-self: start;
   min-width: 150px;
   min-height: 46px;
   border-width: 4px;
   border-radius: 18px;
   font-size: 16px;
+}
+
+.stage-center-logo {
+  justify-self: center;
+  width: clamp(132px, 13vw, 220px);
+  height: clamp(92px, 10vw, 160px);
+}
+
+.stage-qr-slot {
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border: 3px solid #9db1bf;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 5px 0 rgba(3, 28, 79, 0.2);
+}
+
+.stage-qr-slot canvas {
+  width: clamp(74px, 8vw, 112px);
+  height: clamp(74px, 8vw, 112px);
+  display: block;
+  image-rendering: pixelated;
 }
 
 .scoreboard-leave {
@@ -1077,25 +1108,6 @@ h2 {
   font-weight: 1000;
 }
 
-.invite-box {
-  display: none;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  justify-content: normal;
-  justify-self: center;
-  gap: 14px;
-  width: min(100%, 920px);
-  min-height: 104px;
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 10px 16px;
-  border: 3px solid #9db1bf;
-  border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 5px 0 rgba(3, 28, 79, 0.25);
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-}
-
 .remove-button {
   width: 30px;
   height: 30px;
@@ -1109,55 +1121,12 @@ h2 {
   box-shadow: 0 4px 0 rgba(125, 29, 42, 0.28);
 }
 
-.invite-box.is-active {
-  display: grid;
-}
-
-#inviteText {
-  min-width: 0;
-}
-
-.invite-code-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.invite-box span {
-  color: #777;
-  font-size: 12px;
-  font-weight: 1000;
-  text-transform: uppercase;
-}
-
-.invite-box strong {
-  display: block;
-  color: var(--blue-deep);
-  font-size: clamp(30px, 3vw, 38px);
-  line-height: 1;
-}
-
-.invite-box p {
-  color: #777;
-  font-size: 15px;
-  font-weight: 900;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
-.invite-box canvas {
-  width: 96px;
-  height: 96px;
-  justify-self: end;
-  image-rendering: pixelated;
-}
-
 .photo-board {
-  min-height: 430px;
+  min-height: clamp(520px, 58vh, 720px);
   position: relative;
   display: grid;
   place-items: center;
-  padding: 70px 30px 34px;
+  padding: 76px 34px 42px;
 }
 
 .hint-card,
@@ -1179,8 +1148,8 @@ h2 {
 }
 
 .photo-board img {
-  max-width: min(460px, 80%);
-  max-height: 260px;
+  max-width: min(560px, 86%);
+  max-height: 360px;
   border: 8px solid #063a82;
   border-radius: 28px;
   object-fit: cover;
@@ -1223,12 +1192,12 @@ h2 {
 
 .bottom-panels {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
 }
 
 .bottom-panels.has-admin {
-  grid-template-columns: minmax(390px, 1.08fr) minmax(330px, 1fr) minmax(330px, 0.92fr);
+  grid-template-columns: minmax(330px, 0.9fr) minmax(360px, 1.1fr);
 }
 
 .participant-admin-box,
@@ -1252,6 +1221,66 @@ h2 {
 
 .participant-admin-box.is-active {
   display: block;
+}
+
+.side-chat-box {
+  min-height: 220px;
+  flex: 1;
+  border: 0;
+  border-top: 2px solid #d8e0e6;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 38px 16px 16px;
+}
+
+.side-chat-box:hover {
+  transform: none;
+  border-color: #d8e0e6;
+  box-shadow: none;
+}
+
+.side-chat-box .box-label {
+  top: 10px;
+  min-height: 30px;
+  font-size: 14px;
+}
+
+.side-chat-box .score-list {
+  max-height: min(22vh, 180px);
+}
+
+.owner-code-box {
+  display: none;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 3px solid rgba(220, 174, 49, 0.65);
+  border-radius: 10px;
+  background: #fff8dc;
+}
+
+.owner-code-box.is-active {
+  display: grid;
+}
+
+.owner-code-box span {
+  color: #777;
+  font-size: 12px;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.owner-code-box strong {
+  color: var(--blue-deep);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.owner-code-box .code-actions {
+  grid-row: 1 / 3;
+  grid-column: 2;
 }
 
 .box-label {
@@ -1958,17 +1987,17 @@ h2 {
   }
 
   .stage-layout {
-    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
     gap: 18px;
   }
 
   .stage-layout.is-audience-view {
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   }
 
   .stage-toolbar {
-    justify-content: center;
-    flex-wrap: wrap;
+    grid-template-columns: minmax(126px, auto) minmax(120px, 1fr) minmax(74px, auto);
+    gap: 10px;
   }
 
   .leave-room-button {
@@ -1984,32 +2013,36 @@ h2 {
   }
 
   .stage-layout {
-    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
     gap: 14px;
   }
 
   .stage-layout.is-audience-view {
-    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
   }
 
   .panel-title {
     padding: 12px;
   }
 
-  .invite-box {
-    gap: 10px;
-    width: min(100%, 760px);
-    padding: 8px 12px;
+  .stage-center-logo {
+    width: 118px;
+    height: 88px;
+  }
+
+  .stage-qr-slot {
+    padding: 6px;
+  }
+
+  .stage-qr-slot canvas {
+    width: 74px;
+    height: 74px;
   }
 
   .bottom-panels,
   .bottom-panels.has-admin {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
-  }
-
-  .bottom-panels.has-admin .log-box {
-    grid-column: 1 / -1;
   }
 
   .participant-admin-box,
@@ -2083,7 +2116,6 @@ h2 {
     grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   }
 
-  .invite-box,
   .audience-vote,
   .participant-creator,
   .chat-form {
@@ -2096,24 +2128,39 @@ h2 {
     gap: 6px;
   }
 
-  .invite-box.is-active {
+  .stage-toolbar {
     display: grid;
-    justify-items: center;
-    text-align: center;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "logo logo"
+      "leave qr";
+    align-items: center;
   }
 
-  .invite-box canvas {
-    width: 90px;
-    height: 90px;
+  .leave-room-button {
+    grid-area: leave;
+    justify-self: start;
+  }
+
+  .stage-center-logo {
+    grid-area: logo;
+  }
+
+  .stage-qr-slot {
+    grid-area: qr;
+  }
+
+  .photo-board {
+    min-height: 430px;
   }
 
   .ranking-panel {
     height: auto;
-    min-height: 280px;
+    min-height: 520px;
   }
 
   .player-list {
-    max-height: 320px;
+    max-height: 260px;
   }
 }
 
@@ -2170,16 +2217,11 @@ h2 {
   }
 
   .stage-toolbar {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .stage-toolbar .ribbon.tiny {
-    flex: 1 1 180px;
+    gap: 8px;
   }
 
   .leave-room-button {
-    width: min(100%, 220px);
+    width: min(100%, 170px);
   }
 
   .dramatic-podium.has-tie-winners {
@@ -2314,26 +2356,6 @@ h2 {
 
   .public-summary {
     padding: 10px;
-  }
-}
-
-@media (max-height: 760px) and (min-width: 901px) {
-  .invite-box {
-    min-height: 86px;
-    padding: 8px 14px;
-  }
-
-  .invite-box strong {
-    font-size: 32px;
-  }
-
-  .invite-box p {
-    font-size: 14px;
-  }
-
-  .invite-box canvas {
-    width: 78px;
-    height: 78px;
   }
 }
 

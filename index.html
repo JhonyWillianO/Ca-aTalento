@@ -104,42 +104,33 @@
       <section class="screen stage-screen" data-screen="stage">
         <div class="stage-layout">
           <aside class="ranking-panel room-side-panel">
-            <div class="panel-title">
-              <span>Sala</span>
-              <strong id="currentCode">---</strong>
-              <div class="code-actions">
-                <button class="mini-button" id="copyCode" title="Copiar codigo">copiar</button>
-                <button class="mini-button code-eye-button" data-toggle-room-code type="button" title="Mostrar codigo" aria-label="Mostrar codigo">&#128065;</button>
-              </div>
-            </div>
             <div class="side-section-title">Participantes</div>
             <ul class="player-list" id="queueList"></ul>
             <div class="side-section">
               <span>Convidados</span>
               <ul class="guest-list" id="guestList"></ul>
             </div>
+            <section class="log-box side-chat-box">
+              <div class="box-label">CHAT</div>
+              <ul class="score-list" id="scoreList"></ul>
+              <form class="chat-form" id="chatForm">
+                <input id="chatInput" type="text" maxlength="160" placeholder="Escreva no chat..." />
+                <button class="blue-button" type="submit">ENVIAR</button>
+              </form>
+            </section>
           </aside>
 
           <section class="show-area stage-main">
             <div class="stage-toolbar">
-              <div class="ribbon tiny" id="stageTitle">PALCO</div>
               <button class="test-button leave-room-button" id="leaveRoom">SAIR DA SALA</button>
+              <div class="app-logo stage-center-logo" aria-label="Projeto Caca Talentos"></div>
+              <div class="stage-qr-slot">
+                <canvas id="qrCanvas" width="132" height="132" aria-label="QR Code da sala"></canvas>
+              </div>
             </div>
 
-            <section class="invite-box" id="inviteBox">
-              <div id="inviteText">
-                <span>Convite da sala</span>
-                <div class="invite-code-line">
-                  <strong id="inviteCode">---</strong>
-                  <button class="mini-button code-eye-button" data-toggle-room-code type="button" title="Mostrar codigo" aria-label="Mostrar codigo">&#128065;</button>
-                </div>
-                <p>Jurados entram com este codigo. Convidados entram pelo QR Code.</p>
-              </div>
-              <canvas id="qrCanvas" width="132" height="132" aria-label="QR Code da sala"></canvas>
-            </section>
-
             <div class="photo-board">
-              <div class="hint-card">APRESENTANDO</div>
+              <div class="hint-card" id="stageTitle">PALCO</div>
               <img id="performerPhoto" alt="" />
               <strong id="performerName">Aguardando participante</strong>
               <p id="performerDescription" class="performer-description"></p>
@@ -170,6 +161,14 @@
 
               <section class="professor-box">
                 <div class="box-label">JURADOS</div>
+                <div class="owner-code-box" id="ownerCodeBox">
+                  <span>Codigo da sala</span>
+                  <strong id="currentCode">---</strong>
+                  <div class="code-actions">
+                    <button class="mini-button" id="copyCode" title="Copiar codigo">copiar</button>
+                    <button class="mini-button code-eye-button" data-toggle-room-code type="button" title="Mostrar codigo" aria-label="Mostrar codigo">&#128065;</button>
+                  </div>
+                </div>
                 <ul class="teacher-list" id="teacherList"></ul>
                 <div class="teacher-panel" id="teacherPanel">
                   <div class="current-performer-pill" id="teacherCurrentStudent">Apresentando: aguardando participante</div>
@@ -219,14 +218,6 @@
                 </div>
               </section>
 
-              <section class="log-box">
-                <div class="box-label">CHAT</div>
-                <ul class="score-list" id="scoreList"></ul>
-                <form class="chat-form" id="chatForm">
-                  <input id="chatInput" type="text" maxlength="160" placeholder="Escreva no chat..." />
-                  <button class="blue-button" type="submit">ENVIAR</button>
-                </form>
-              </section>
           </div>
         </div>
       </section>
