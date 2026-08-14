@@ -847,7 +847,7 @@ h2 {
   width: min(1510px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 390px 1fr;
+  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
   gap: 26px;
 }
 
@@ -992,6 +992,7 @@ h2 {
 }
 
 .show-area {
+  min-width: 0;
   display: grid;
   gap: 24px;
 }
@@ -1033,7 +1034,10 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  width: 100%;
   min-height: 104px;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 10px 16px;
   border: 3px solid #9db1bf;
   border-radius: 10px;
@@ -1059,6 +1063,10 @@ h2 {
   display: flex;
 }
 
+#inviteText {
+  min-width: 0;
+}
+
 .invite-box span {
   color: #777;
   font-size: 12px;
@@ -1078,6 +1086,7 @@ h2 {
   font-size: 15px;
   font-weight: 900;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .invite-box canvas {
@@ -1884,6 +1893,37 @@ h2 {
   flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
+}
+
+@media (max-width: 1440px) {
+  .app-shell {
+    width: min(1510px, calc(100% - 40px));
+  }
+
+  .stage-layout {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    gap: 18px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .app-shell {
+    width: min(1510px, calc(100% - 24px));
+  }
+
+  .stage-layout {
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .panel-title {
+    padding: 12px;
+  }
+
+  .invite-box {
+    gap: 10px;
+    padding: 8px 12px;
+  }
 }
 
 @media (max-width: 900px) {
