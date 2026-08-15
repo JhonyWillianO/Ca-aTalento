@@ -1107,6 +1107,7 @@ h2 {
 
 .stage-content-grid {
   min-width: 0;
+  height: clamp(500px, 54vh, 560px);
   display: grid;
   grid-template-columns: minmax(430px, 1fr) minmax(270px, 300px);
   gap: 22px;
@@ -1144,11 +1145,12 @@ h2 {
 }
 
 .photo-board {
-  min-height: clamp(390px, 44vh, 430px);
+  height: 100%;
+  min-height: 0;
   position: relative;
   display: grid;
   place-items: center;
-  padding: 70px 34px 38px;
+  padding: 76px 36px 42px;
 }
 
 .hint-card,
@@ -1170,8 +1172,8 @@ h2 {
 }
 
 .photo-board img {
-  max-width: min(310px, 76%);
-  max-height: 220px;
+  max-width: min(380px, 82%);
+  max-height: 280px;
   border: 8px solid #063a82;
   border-radius: 28px;
   object-fit: cover;
@@ -1192,7 +1194,7 @@ h2 {
 .photo-board strong {
   margin-top: 18px;
   color: #777;
-  font-size: clamp(28px, 5vw, 52px);
+  font-size: clamp(36px, 4.6vw, 58px);
   text-align: center;
 }
 
@@ -1273,7 +1275,8 @@ h2 {
 }
 
 .stage-chat-box {
-  min-height: clamp(390px, 44vh, 430px);
+  height: 100%;
+  min-height: 0;
   border: 3px solid #9db1bf;
   border-radius: 10px;
   background: var(--panel);
@@ -2273,6 +2276,12 @@ h2 {
   .stage-participant-admin .participant-creator,
   .stage-judge-panel .criteria-panel {
     grid-template-columns: 1fr;
+  }
+
+  .stage-content-grid,
+  .photo-board,
+  .stage-chat-box {
+    height: auto;
   }
 
   .photo-board {

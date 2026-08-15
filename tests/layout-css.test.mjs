@@ -23,8 +23,12 @@ assert.match(blockFor(".stage-center-logo"), /width:\s*clamp\(116px,\s*10vw,\s*1
 assert.match(blockFor(".leave-room-button"), /align-self:\s*end\s*;/, "leave room button must sit near the stage instead of floating high");
 assert.match(blockFor(".stage-qr-slot"), /align-self:\s*end\s*;/, "QR code must sit near the stage instead of floating high");
 assert.match(blockFor(".stage-qr-slot canvas"), /width:\s*clamp\(74px,\s*7vw,\s*104px\)/, "QR code must shrink on smaller screens without leaving the toolbar");
+assert.match(blockFor(".stage-content-grid"), /height:\s*clamp\(500px,\s*54vh,\s*560px\)/, "stage and chat row must have a fixed responsive height so chat messages cannot stretch the stage");
 assert.match(blockFor(".stage-content-grid"), /grid-template-columns:\s*minmax\(430px,\s*1fr\)\s+minmax\(270px,\s*300px\)/, "stage and chat must sit side by side like the reference");
-assert.match(blockFor(".photo-board"), /min-height:\s*clamp\(390px,\s*44vh,\s*430px\)/, "stage board must fit the reference height");
+assert.match(blockFor(".photo-board"), /height:\s*100%/, "stage board must follow the fixed stage row height");
+assert.match(blockFor(".photo-board"), /min-height:\s*0/, "stage board must not force the stage row to grow");
+assert.match(css, /\.stage-chat-box\s*\{[\s\S]*?height:\s*100%/, "stage chat must follow the fixed stage row height");
+assert.match(css, /\.stage-chat-box\s*\{[\s\S]*?min-height:\s*0/, "stage chat must not force the stage row to grow");
 assert.match(blockFor(".ranking-panel"), /height:\s*min\(640px,\s*calc\(100vh\s*-\s*104px\)\)/, "side panel must match the compact reference height");
 assert.match(blockFor(".ranking-panel"), /min-height:\s*600px\s*;/, "side panel must stay tall without forcing a huge page");
 assert.match(blockFor(".player-list li,\n.podium li"), /grid-template-columns:\s*52px\s+minmax\(0,\s*1fr\)\s+auto/, "participant rows must stay compact like the reference");
